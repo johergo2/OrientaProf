@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OrientaPro</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="phone-shell">
+      <section class="screen active" id="welcome-screen" aria-label="Inicio">
+        <header class="brand-header">
+          <div class="brand-mark">OP</div>
+          <div>
+            <p class="eyebrow">Orientacion con Profesionales</p>
+            <h1>OrientaPro</h1>
+          </div>
+        </header>
+
+        <section class="hero-panel">
+          <h3 class="hero-title-bar">Asesoria verificada, movil y cercana</h3>
+          <button type="button" class="help-button" aria-expanded="false" aria-controls="help-panel">Ayuda</button>
+          <h2>Encuentra orientacion profesional cuando la necesitas.</h2>
+          <p>
+            Publica una consulta o contacta especialistas calificados en areas
+            contables, laborales, medicas, legales y de emprendimiento.
+          </p>
+          <aside class="help-panel" id="help-panel">
+            <div class="help-panel-header">
+              <h3>Para que sirve OrientaPro</h3>
+              <button type="button" class="help-close" aria-label="Cerrar ayuda">X</button>
+            </div>
+            <p>
+              La aplicacion permite acceder a consultas con especialistas de
+              diferentes profesiones para aclarar dudas especificas mediante
+              videollamadas de 10, 15, 20 o 30 minutos.
+            </p>
+            <p>
+              Por ejemplo, una persona liquidada por su empleador puede revisar
+              dudas sobre el valor pagado con un especialista laboral, contador
+              u otro profesional segun el caso.
+            </p>
+            <p>
+              Cada profesional define al registrarse su tarifa por minuto, entre
+              $750 y $1.500 COP.
+            </p>
+          </aside>
+        </section>
+
+        <section class="role-card" aria-label="Seleccion de perfil">
+          <h3>Ingresa como</h3>
+          <div class="role-options">
+            <label class="role-radio">
+              <input type="radio" name="profile-role" value="client-screen" checked />
+              <span>
+                <strong>Usuario</strong>
+                <small>Busco orientacion</small>
+              </span>
+            </label>
+            <label class="role-radio">
+              <input type="radio" name="profile-role" value="professional-screen" />
+              <span>
+                <strong>Profesional</strong>
+                <small>Ofrezco servicios</small>
+              </span>
+            </label>
+          </div>
+          <div class="auth-actions" aria-label="Acceso de cuenta">
+            <button type="button" class="auth-action">Ingresar</button>
+            <button type="button" class="auth-action register-action">Registrarse</button>
+          </div>
+        </section>
+
+        <section class="category-strip" aria-label="Categorias principales">
+          <span>Tributaria</span>
+          <span>Laboral</span>
+          <span>Medica</span>
+          <span>Legal</span>
+          <span>Empresas</span>
+        </section>
+      </section>
+
+      <section class="screen" id="client-screen" aria-label="Panel de usuario">
+        <nav class="topbar">
+          <button class="icon-button" data-screen="welcome-screen" aria-label="Volver">&lsaquo;</button>
+          <strong>Usuario</strong>
+          <span></span>
+        </nav>
+
+        <section class="section-block">
+          <h2>Que necesitas resolver?</h2>
+          <div class="segmented">
+            <button class="active" data-tab="request">Publicar consulta</button>
+            <button data-tab="search">Buscar profesional</button>
+          </div>
+        </section>
+
+        <form class="flow-panel tab-panel active" id="request-panel">
+          <label>
+            Categoria
+            <select>
+              <option>Consultas tributarias y contables</option>
+              <option>Consultas laborales</option>
+              <option>Orientacion medica profesional</option>
+              <option>Orientacion con abogados</option>
+              <option>Asesoria pequenas empresas y emprendimientos</option>
+            </select>
+          </label>
+          <label>
+            Describe tu consulta
+            <textarea placeholder="Ej: Necesito orientacion sobre una declaracion de renta..." rows="5"></textarea>
+          </label>
+          <label>
+            Urgencia
+            <select>
+              <option>Hoy</option>
+              <option>Esta semana</option>
+              <option>Sin urgencia</option>
+            </select>
+          </label>
+          <button type="button" class="primary-action">Enviar a profesionales mejor calificados</button>
+        </form>
+
+        <section class="flow-panel tab-panel" id="search-panel">
+          <label>
+            Categoria
+            <select>
+              <option>Orientacion con abogados</option>
+              <option>Consultas tributarias y contables</option>
+              <option>Consultas laborales</option>
+              <option>Orientacion medica profesional</option>
+            </select>
+          </label>
+          <div class="professional-list">
+            <article class="professional-card">
+              <div>
+                <h3>Laura Mendez</h3>
+                <p>Abogada laboral - 4.9</p>
+              </div>
+              <button>Consultar</button>
+            </article>
+            <article class="professional-card">
+              <div>
+                <h3>Carlos Rivas</h3>
+                <p>Contador tributario - 4.8</p>
+              </div>
+              <button>Consultar</button>
+            </article>
+          </div>
+        </section>
+      </section>
+
+      <section class="screen" id="professional-screen" aria-label="Panel profesional">
+        <nav class="topbar">
+          <button class="icon-button" data-screen="welcome-screen" aria-label="Volver">&lsaquo;</button>
+          <strong>Profesional</strong>
+          <span></span>
+        </nav>
+
+        <form class="flow-panel">
+          <h2>Acredita tu perfil</h2>
+          <label>
+            Nombre profesional
+            <input type="text" placeholder="Nombre y apellido" />
+          </label>
+          <label>
+            Categoria principal
+            <select>
+              <option>Consultas tributarias y contables</option>
+              <option>Consultas laborales</option>
+              <option>Orientacion medica profesional</option>
+              <option>Orientacion con abogados</option>
+              <option>Asesoria pequenas empresas y emprendimientos</option>
+            </select>
+          </label>
+          <label>
+            Documento de acreditacion
+            <input type="file" />
+          </label>
+          <label>
+            Tarifa sugerida por consulta
+            <input type="text" placeholder="Ej: 25 USDC o tarifa por definir" />
+          </label>
+          <button type="button" class="primary-action">Enviar perfil para verificacion</button>
+        </form>
+
+        <section class="section-block">
+          <h2>Solicitudes disponibles</h2>
+          <article class="request-card">
+            <span>Laboral</span>
+            <p>Necesito revisar liquidacion y derechos por terminacion de contrato.</p>
+            <button>Ofrecer asesoria</button>
+          </article>
+        </section>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
