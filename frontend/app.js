@@ -5,6 +5,17 @@ const authActions = document.querySelectorAll(".auth-action");
 const helpButton = document.querySelector(".help-button");
 const helpPanel = document.querySelector("#help-panel");
 const helpClose = document.querySelector(".help-close");
+const backDashboardButtons = document.querySelectorAll(".back-dashboard");
+
+let activeRole = "client";
+
+function selectedRole() {
+  return document.querySelector('input[name="profile-role"]:checked').value;
+}
+
+function dashboardForRole() {
+  return activeRole === "professional" ? "professional-screen" : "client-screen";
+}
 
 function showScreen(screenId) {
   screens.forEach((screen) => {
@@ -18,9 +29,15 @@ screenButtons.forEach((button) => {
 
 authActions.forEach((button) => {
   button.addEventListener("click", () => {
-    const selectedRole = document.querySelector('input[name="profile-role"]:checked');
-    showScreen(selectedRole.value);
+    activeRole = selectedRole();
+    const isRegister = button.dataset.auth === "register";
+    const target = isRegister ? `${activeRole}-register-screen` : dashboardForRole();
+    showScreen(target);
   });
+});
+
+backDashboardButtons.forEach((button) => {
+  button.addEventListener("click", () => showScreen(dashboardForRole()));
 });
 
 helpButton.addEventListener("click", () => {
@@ -37,7 +54,6 @@ tabButtons.forEach((button) => {
   button.addEventListener("click", () => {
     tabButtons.forEach((tab) => tab.classList.remove("active"));
     button.classList.add("active");
-
     document.querySelectorAll(".tab-panel").forEach((panel) => {
       panel.classList.toggle("active", panel.id === `${button.dataset.tab}-panel`);
     });

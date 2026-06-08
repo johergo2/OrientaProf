@@ -262,7 +262,6 @@ h3 {
 
 .auth-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-top: 12px;
 }
@@ -279,6 +278,114 @@ h3 {
 .auth-actions .register-action {
   background: var(--green-700);
   color: var(--white);
+}
+
+.privacy-note {
+  margin: 0;
+  border-left: 4px solid var(--green-500);
+  background: var(--green-100);
+  color: var(--green-900);
+  padding: 12px;
+  border-radius: 8px;
+  line-height: 1.35;
+}
+
+.generated-user {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px dashed var(--green-500);
+  border-radius: 8px;
+  background: #f8fcf9;
+  padding: 12px;
+}
+
+.generated-user span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.generated-user strong {
+  color: var(--green-900);
+}
+
+.inline-action {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.inline-action button,
+.settings-row,
+.message-card button,
+.appointment-card button {
+  border: 1px solid var(--green-700);
+  border-radius: 8px;
+  background: var(--green-100);
+  color: var(--green-900);
+  padding: 12px 14px;
+  font-weight: 800;
+}
+
+.nav-icons {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.status-icon {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--white);
+  color: var(--green-900);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.status-icon span {
+  position: absolute;
+  top: -5px;
+  right: -4px;
+  min-width: 17px;
+  height: 17px;
+  border-radius: 999px;
+  background: var(--amber);
+  color: var(--green-900);
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+}
+
+.status-icon::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 10;
+  opacity: 0;
+  pointer-events: none;
+  border-radius: 8px;
+  background: var(--green-900);
+  color: var(--white);
+  padding: 7px 9px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: 0 8px 18px rgba(7, 59, 47, 0.22);
+  transform: translateY(-3px);
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.status-icon:hover::after,
+.status-icon:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .role-radio:hover,
@@ -435,6 +542,44 @@ textarea:focus {
   gap: 12px;
 }
 
+.message-card,
+.appointment-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfefc;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.message-card h3,
+.appointment-card h3 {
+  color: var(--green-900);
+}
+
+.message-card p,
+.appointment-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.appointment-card span {
+  width: fit-content;
+  border-radius: 999px;
+  background: var(--green-100);
+  color: var(--green-900);
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.settings-row {
+  width: 100%;
+  text-align: left;
+  background: #fbfefc;
+}
+
 @media (max-width: 360px) {
   body {
     padding: 0;
@@ -451,5 +596,15 @@ textarea:focus {
 
   h1 {
     font-size: 26px;
+  }
+
+  .role-options,
+  .segmented,
+  .inline-action {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    align-items: flex-start;
   }
 }
