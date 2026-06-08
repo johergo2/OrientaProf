@@ -26,6 +26,12 @@ body {
   padding: 18px;
 }
 
+.icono {
+    width: 1250px;
+    max-width: 100%;
+    height: auto;
+}
+
 button,
 input,
 select,
@@ -73,15 +79,21 @@ button {
 }
 
 .brand-mark {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  background: var(--green-900);
-  color: var(--white);
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background: var(--dark green);
+  border: 2px solid var(--line);
   display: grid;
   place-items: center;
-  font-weight: 800;
-  letter-spacing: 0;
+  overflow: hidden;
+  padding: 4px;
+}
+
+.brand-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .eyebrow,
