@@ -31,7 +31,7 @@
             </div>
             <p>Nuestra app te conecta con profesionales de diferentes áreas, como derecho, medicina, contabilidad, ingeniería, arquitectura, finanzas e inversiones, para que recibas asesoría personalizada mediante videollamadas de corta duración.</p>
             <p>Publica tu consulta o busca directamente un profesional. Los especialistas interesados podrán responderte y explicarte cómo pueden ayudarte. Luego podrás elegir al profesional que prefieras y agendar una videollamada de 10, 15, 20 o 30 minutos para resolver tus inquietudes.</p>
-            <p>Por ejemplo, si tu empleador te liquidó y tienes dudas sobre el valor recibido, podrás consultar con un abogado laboral o un contador especializado y obtener orientación profesional de forma rápida, sencilla y a un costo accesible.</p>
+            <p>Por ejemplo, si tu empleador te liquidó definitivamente y tienes dudas sobre el valor recibido, podrás consultar con un abogado laboral o un contador especializado y obtener orientación profesional de forma rápida, sencilla y a un costo accesible.</p>
 			<p>Cada profesional establece su propia tarifa por minuto dentro de los rangos autorizados por la plataforma, permitiéndote elegir la opción que mejor se adapte a tus necesidades y presupuesto.</p>
           </aside>
         </section>
@@ -124,13 +124,63 @@
         <form class="flow-panel tab-panel active" id="request-panel">
           <label>Categoria<select><option>Consultas tributarias y contables</option><option>Consultas laborales</option><option>Orientacion medica profesional</option><option>Orientacion con abogados</option><option>Asesoria pequenas empresas y emprendimientos</option></select></label>
           <label>Describe tu consulta<textarea placeholder="Ej: Tengo dudas sobre mi liquidacion laboral..." rows="5"></textarea></label>
-          <button type="button" class="primary-action">Publicar consulta</button>
+          <button type="button" class="primary-action" id="publish-request-button">Publicar consulta</button>
         </form>
         <section class="flow-panel tab-panel" id="search-panel">
           <label>Categoria o profesion<select><option>Abogado laboral</option><option>Contador tributario</option><option>Medico especialista</option><option>Ingeniero civil</option></select></label>
           <div class="professional-list">
-            <article class="professional-card"><div><h3>Laura Mendez</h3><p>Abogada laboral - 4.9 - $1.200/min</p></div><button>Consultar</button></article>
-            <article class="professional-card"><div><h3>Carlos Rivas</h3><p>Contador tributario - 4.8 - $1.000/min</p></div><button>Consultar</button></article>
+            <article class="professional-card"><div><h3>Laura Usuario01</h3><p>Abogada laboral - 4.9 - $1.200/min</p></div>
+			  <button
+				type="button"
+				class="expand-professional">
+				+
+			  </button>
+			  <div class="professional-details">
+				<p><strong>Profesión:</strong> Abogado</p>
+				<p><strong>Diplomas:</strong>
+				  Especialización Derecho Laboral
+				</p>
+				<p><strong>Experiencia:</strong>
+				  4 años
+				</p>
+				<p><strong>Servicios:</strong>
+				  Asesoría en Contratación,
+				  Asesoría en Cálculos de Nómina,
+				  Conciliaciones.
+				</p>
+			  </div>	
+			  <button
+				type="button"
+				class="primary-action consult-professional">			  
+			    Consultar
+			  </button>
+			</article>
+            <article class="professional-card"><div><h3>Rodrigo Usuario02</h3><p>Médico - 4.2 - $1.400/min</p></div>
+			  <button
+				type="button"
+				class="expand-professional">
+				+
+			  </button>
+			  <div class="professional-details">
+				<p><strong>Profesión:</strong> Médico</p>
+				<p><strong>Diplomas:</strong>
+				  Especialización Médico Internista
+				</p>
+				<p><strong>Experiencia:</strong>
+				  2 años
+				</p>
+				<p><strong>Servicios:</strong>
+				  Consulta General,
+				  Primeros Axilios,
+				  Reanimación.
+				</p>
+			  </div>
+			  <button
+				type="button"
+				class="primary-action consult-professional">
+				Consultar
+			  </button>
+			</article>
           </div>
         </section>
       </section>
@@ -155,11 +205,75 @@
         </section>
       </section>
 
+      <section class="screen" id="my-requests-screen">
+	    <div class="top-bar">
+		  <button class="icon-button back-dashboard" type="button">
+		    ←
+          </button>
+		  <h2>Mis consultas</h2>
+	    </div>
+
+	    <div id="my-requests-list" class="flow-panel">
+		  <!-- Aquí se cargan las consultas -->
+	    </div>
+
+	    <button
+		  type="button"
+		  class="primary-action"
+		  id="new-request-button">
+		  Nueva consulta
+	    </button>
+	  </section>
+
+	  <section class="screen" id="professional-request-screen">
+	    <div class="top-bar">
+		  <button
+		    type="button"
+		    class="icon-button"
+		    id="back-to-search">
+		    ←
+		  </button>
+
+		  <h2>Consulta al profesional</h2>
+	    </div>
+
+	    <article class="flow-panel">
+		  <h3 id="selected-professional-title">
+		    Profesional seleccionado: Laura Usuario01
+		  </h3>
+
+		  <div id="selected-professional-summary"></div>
+
+		  <label>
+		    Título de la consulta
+		    <input
+			  type="text"
+			  id="direct-request-title"
+			  placeholder="Título de la consulta">
+		  </label>
+
+		  <label>
+		    Descripción de la consulta
+		    <textarea
+			  id="direct-request-description"
+			  rows="5"
+			  placeholder="Describe tu consulta"></textarea>
+		  </label>
+
+		  <button
+		    type="button"
+		    class="primary-action"
+		    id="send-direct-request">
+		    Enviar consulta
+		  </button>
+	    </article>
+	  </section>	  
+
       <section class="screen" id="messages-screen" aria-label="Mensajes">
         <nav class="topbar"><button class="icon-button back-dashboard" aria-label="Volver">&lsaquo;</button><strong>Mensajes</strong><span></span></nav>
         <section class="flow-panel">
-          <article class="message-card"><h3>Laura Mendez</h3><p>Puedo ayudarte a revisar la liquidacion y explicarte los conceptos pagados.</p><button data-screen="calendar-screen">Agendar videollamada</button></article>
-          <article class="message-card"><h3>Carlos Rivas</h3><p>Te puedo orientar sobre el calculo y documentos necesarios para validar el pago.</p><button data-screen="calendar-screen">Agendar videollamada</button></article>
+          <article class="message-card"><h3>Laura Usuario01</h3><p>Puedo ayudarte a revisar la liquidacion y explicarte los conceptos pagados.</p><button data-screen="calendar-screen">Agendar videollamada</button></article>
+          <article class="message-card"><h3>Carlos Usuario03</h3><p>Te puedo orientar sobre el calculo y documentos necesarios para validar el pago.</p><button data-screen="calendar-screen">Agendar videollamada</button></article>
         </section>
       </section>
 
@@ -179,7 +293,7 @@
           <button class="settings-row">Ingresar datos de cuenta bancaria</button>
           <button class="settings-row professional-only">Modificar tarifa por minuto</button>
         </section>
-      </section>
+      </section>	  
     </main>
     <script src="app.js"></script>
   </body>
