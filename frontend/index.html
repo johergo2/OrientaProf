@@ -123,13 +123,14 @@
         </section>
         <form class="flow-panel tab-panel active" id="request-panel">
           <label>Categoria<select><option>Consultas tributarias y contables</option><option>Consultas laborales</option><option>Orientacion medica profesional</option><option>Orientacion con abogados</option><option>Asesoria pequenas empresas y emprendimientos</option></select></label>
+          <label>Titulo de la consulta<input type="text" placeholder="Ej: Revision de liquidacion laboral" /></label>
           <label>Describe tu consulta<textarea placeholder="Ej: Tengo dudas sobre mi liquidacion laboral..." rows="5"></textarea></label>
           <button type="button" class="primary-action" id="publish-request-button">Publicar consulta</button>
         </form>
         <section class="flow-panel tab-panel" id="search-panel">
           <label>Categoria o profesion<select><option>Abogado laboral</option><option>Contador tributario</option><option>Medico especialista</option><option>Ingeniero civil</option></select></label>
           <div class="professional-list">
-            <article class="professional-card"><div><h3>Laura Usuario01</h3><p>Abogada laboral - 4.9 - $1.200/min</p></div>
+            <article class="professional-card" data-profession="Abogada laboral" data-experience="4 anos"><div><h3>Laura Usuario01</h3><p>Abogada laboral - 4.9 - $1.200/min</p></div>
 			  <button
 				type="button"
 				class="expand-professional">
@@ -155,7 +156,7 @@
 			    Consultar
 			  </button>
 			</article>
-            <article class="professional-card"><div><h3>Rodrigo Usuario02</h3><p>Médico - 4.2 - $1.400/min</p></div>
+            <article class="professional-card" data-profession="Medico internista" data-experience="2 anos"><div><h3>Rodrigo Usuario02</h3><p>Médico - 4.2 - $1.400/min</p></div>
 			  <button
 				type="button"
 				class="expand-professional">
