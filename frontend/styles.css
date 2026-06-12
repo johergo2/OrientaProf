@@ -510,6 +510,12 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(17, 163, 106, 0.13);
 }
 
+input[readonly] {
+  background: var(--green-100);
+  color: var(--green-900);
+  font-weight: 800;
+}
+
 .primary-action,
 .professional-card button,
 .request-card button {
@@ -591,6 +597,65 @@ textarea:focus {
   width: 100%;
   text-align: left;
   background: #fbfefc;
+}
+
+.form-section {
+  min-width: 0;
+  margin: 4px 0 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--mint);
+  padding: 14px;
+  display: grid;
+  gap: 14px;
+}
+
+.form-section legend {
+  color: var(--green-900);
+  padding: 0 7px;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.save-feedback {
+  min-height: 20px;
+  margin: 0;
+  color: var(--green-700);
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.error-feedback {
+  color: #b42318;
+}
+
+.professional-summary {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--mint);
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.professional-summary p,
+.field-help {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.professional-summary strong {
+  color: var(--green-900);
+}
+
+.field-help {
+  font-size: 12px;
 }
 
 @media (max-width: 360px) {

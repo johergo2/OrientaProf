@@ -7,6 +7,10 @@ const helpPanel = document.querySelector("#help-panel");
 const helpClose = document.querySelector(".help-close");
 const backDashboardButtons = document.querySelectorAll(".back-dashboard");
 const publishRequestButton = document.getElementById("publish-request-button");
+const saveDemoButtons = document.querySelectorAll(".save-demo-button");
+const importDemoButtons = document.querySelectorAll(".import-demo-button");
+const changePasswordButton = document.getElementById("change-password-button");
+const saveProfessionalRateButton = document.getElementById("save-professional-rate");
 
 let activeRole = "client";
 let userRequests = [];
@@ -20,7 +24,38 @@ function dashboardForRole() {
   return activeRole === "professional" ? "professional-screen" : "client-screen";
 }
 
+function syncRoleSpecificUI() {
+  const isProfessional = activeRole === "professional";
+
+  document.querySelectorAll(".professional-personal-fields").forEach((section) => {
+    section.classList.toggle("hidden", !isProfessional);
+  });
+
+  document.querySelectorAll(".professional-only").forEach((element) => {
+    element.classList.toggle("hidden", !isProfessional);
+  });
+
+  const personalForm = document.getElementById("personal-data-form");
+  if (!personalForm) return;
+
+  const usernameInput = document.getElementById("personal-username");
+  const nameInput = document.getElementById("personal-full-name");
+  const emailInput = document.getElementById("personal-email");
+
+  if (isProfessional) {
+    usernameInput.value = "OrientapProfesional1";
+    nameInput.value = "Laura Usuario01";
+    emailInput.value = "laura.profesional@example.com";
+  } else {
+    usernameInput.value = "Orientap1";
+    nameInput.value = "Andrea Usuario01";
+    emailInput.value = "andrea.usuario@example.com";
+  }
+}
+
 function showScreen(screenId) {
+  syncRoleSpecificUI();
+
   screens.forEach((screen) => {
     screen.classList.toggle("active", screen.id === screenId);
   });
@@ -51,6 +86,77 @@ helpButton.addEventListener("click", () => {
 helpClose.addEventListener("click", () => {
   helpPanel.classList.remove("active");
   helpButton.setAttribute("aria-expanded", "false");
+});
+
+saveDemoButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const form = button.closest("form");
+    const feedback = form?.querySelector(".save-feedback");
+
+    if (feedback) {
+      feedback.textContent = button.dataset.message;
+    }
+  });
+});
+
+importDemoButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const form = button.closest("form");
+    const textInputs = form?.querySelectorAll('input[type="text"], input[type="email"]');
+
+    if (!textInputs || textInputs.length < 4) return;
+
+    textInputs[1].value = "Andrea Usuario01";
+    textInputs[2].value = "1020304050";
+    textInputs[3].value = "andrea.usuario@example.com";
+    button.textContent = "Importado";
+  });
+});
+
+changePasswordButton?.addEventListener("click", () => {
+  const currentPassword = document.getElementById("current-password").value;
+  const newPassword = document.getElementById("new-password").value;
+  const confirmPassword = document.getElementById("confirm-password").value;
+  const feedback = document.getElementById("password-feedback");
+
+  feedback.classList.remove("error-feedback");
+
+  if (currentPassword !== "Orienta123") {
+    feedback.textContent = "La contrasena actual no es correcta.";
+    feedback.classList.add("error-feedback");
+    return;
+  }
+
+  if (newPassword.length < 8) {
+    feedback.textContent = "La nueva contrasena debe tener al menos 8 caracteres.";
+    feedback.classList.add("error-feedback");
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    feedback.textContent = "La confirmacion no coincide con la nueva contrasena.";
+    feedback.classList.add("error-feedback");
+    return;
+  }
+
+  feedback.textContent = "Contrasena actualizada correctamente.";
+  document.getElementById("password-form").reset();
+});
+
+saveProfessionalRateButton?.addEventListener("click", () => {
+  const rateInput = document.getElementById("professional-rate-input");
+  const feedback = document.getElementById("rate-feedback");
+  const rate = Number(rateInput.value);
+
+  feedback.classList.remove("error-feedback");
+
+  if (rate < 750 || rate > 1500) {
+    feedback.textContent = "La tarifa debe estar entre $750 y $1.500 COP.";
+    feedback.classList.add("error-feedback");
+    return;
+  }
+
+  feedback.textContent = `Tarifa actualizada a $${rate.toLocaleString("es-CO")} COP por minuto.`;
 });
 
 tabButtons.forEach((button) => {

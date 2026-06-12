@@ -63,6 +63,10 @@
         </nav>
         <form class="flow-panel">
           <p class="privacy-note">Tu informacion personal no sera visible para otros usuarios ni profesionales.</p>
+          <div class="inline-action">
+            <label>Buscar usuario o documento<input type="text" placeholder="Orientap1 o numero de documento" /></label>
+            <button type="button" class="import-demo-button" data-import-target="client-register-screen">Importar</button>
+          </div>
           <label>Nombres y apellidos<input type="text" placeholder="Ej: Juan Perez" /></label>
           <label>Tipo de documento<select><option>Cedula de ciudadania</option><option>Cedula de extranjeria</option><option>Pasaporte</option><option>Tarjeta de identidad</option></select></label>
           <label>Numero de documento<input type="text" placeholder="Numero de identificacion" /></label>
@@ -94,12 +98,23 @@
           <label>Tipo de documento<select><option>Cedula de ciudadania</option><option>Cedula de extranjeria</option><option>Pasaporte</option></select></label>
           <label>Numero de documento<input type="text" placeholder="Numero de identificacion" /></label>
           <label>Correo electronico<input type="email" placeholder="correo@ejemplo.com" /></label>
+          <label>Genero<select><option>Masculino</option><option>Femenino</option></select></label>
           <label>Pais<input type="text" placeholder="Colombia" /></label>
           <label>Ciudad<input type="text" placeholder="Ciudad" /></label>
+          <label>Fecha de nacimiento<input type="date" /></label>
+          <label>Direccion de residencia<input type="text" placeholder="Direccion" /></label>
           <label>Profesion o area de conocimiento<select><option>Abogado</option><option>Arquitecto</option><option>Medico general</option><option>Medico especialista</option><option>Ingeniero civil</option><option>Contador general</option><option>Contador especialista en impuestos</option><option>Economista</option><option>Inversionista</option></select></label>
-          <label>Tarifa por minuto<input type="number" min="750" max="1500" placeholder="Entre 750 y 1500 COP" /></label>
+          <label>Valor de la tarifa por minuto<input id="professional-register-rate" type="number" min="750" max="1500" value="1200" placeholder="Entre 750 y 1500 COP" /></label>
           <label>Documento de identificacion<input type="file" /></label>
           <label>Diploma o acta de grado<input type="file" /></label>
+          <fieldset class="form-section">
+            <legend>Informacion para recibir pago</legend>
+            <label>Pais<input type="text" value="Colombia" /></label>
+            <label>Banco<input type="text" placeholder="Nombre del banco" /></label>
+            <label>Tipo de cuenta<select><option>Ahorros</option><option>Corriente</option></select></label>
+            <label>Numero de cuenta<input type="text" placeholder="Numero de cuenta" /></label>
+            <label>Titular de la cuenta<input type="text" placeholder="Nombre del titular" /></label>
+          </fieldset>
           <button type="button" class="primary-action" data-screen="professional-screen">Guardar perfil profesional</button>
         </form>
       </section>
@@ -289,12 +304,99 @@
       <section class="screen" id="settings-screen" aria-label="Configuracion">
         <nav class="topbar"><button class="icon-button back-dashboard" aria-label="Volver">&lsaquo;</button><strong>Configuracion</strong><span></span></nav>
         <section class="flow-panel">
-          <button class="settings-row">Modificar datos personales</button>
-          <button class="settings-row">Cambiar contrasena</button>
-          <button class="settings-row">Ingresar datos de cuenta bancaria</button>
-          <button class="settings-row professional-only">Modificar tarifa por minuto</button>
+          <button class="settings-row" data-screen="personal-data-screen">Modificar datos personales</button>
+          <button class="settings-row" data-screen="password-screen">Cambiar contrasena</button>
+          <button class="settings-row" data-screen="payment-info-screen">Informacion para recibir pago</button>
+          <button class="settings-row professional-only" data-screen="professional-rate-screen">Modificar tarifa por minuto</button>
         </section>
-      </section>	  
+      </section>
+
+      <section class="screen" id="personal-data-screen" aria-label="Modificar datos personales">
+        <nav class="topbar">
+          <button class="icon-button" data-screen="settings-screen" aria-label="Volver">&lsaquo;</button>
+          <strong>Datos personales</strong>
+          <span></span>
+        </nav>
+        <form class="flow-panel" id="personal-data-form">
+          <p class="privacy-note">Pantalla #12. Los campos disponibles cambian segun el rol activo.</p>
+          <label>Usuario<input id="personal-username" type="text" value="Orientap1" readonly /></label>
+          <label>Nombres y apellidos<input id="personal-full-name" type="text" value="Andrea Usuario01" /></label>
+          <label>Tipo de documento<select><option>Cedula de ciudadania</option><option>Cedula de extranjeria</option><option>Pasaporte</option><option>Tarjeta de identidad</option></select></label>
+          <label>Numero de documento<input type="text" value="1020304050" /></label>
+          <label>Correo electronico<input id="personal-email" type="email" value="andrea.usuario@example.com" /></label>
+          <label>Genero<select><option>Femenino</option><option>Masculino</option></select></label>
+          <label>Pais<input type="text" value="Colombia" /></label>
+          <label>Ciudad<input type="text" value="Bogota" /></label>
+          <label>Fecha de nacimiento<input type="date" value="1992-05-18" /></label>
+          <label>Direccion de residencia<input type="text" value="Calle 10 # 20-30" /></label>
+
+          <fieldset class="form-section professional-personal-fields">
+            <legend>Informacion profesional</legend>
+            <label>Profesion o area de conocimiento<select><option>Abogado</option><option>Arquitecto</option><option>Medico general</option><option>Medico especialista</option><option>Ingeniero civil</option><option>Contador general</option><option>Economista</option></select></label>
+            <label>Tarifa por minuto<input type="number" min="750" max="1500" value="1200" /></label>
+            <label>Actualizar documento de identificacion<input type="file" /></label>
+            <label>Actualizar diploma o acta de grado<input type="file" /></label>
+          </fieldset>
+
+          <button type="button" class="primary-action save-demo-button" data-message="Datos personales actualizados">Guardar cambios</button>
+          <p class="save-feedback" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="screen" id="payment-info-screen" aria-label="Informacion para recibir pago">
+        <nav class="topbar">
+          <button class="icon-button" data-screen="settings-screen" aria-label="Volver">&lsaquo;</button>
+          <strong>Informacion para recibir pago</strong>
+          <span></span>
+        </nav>
+        <form class="flow-panel">
+          <p class="privacy-note">Pantalla #14. Puedes ingresar o modificar la informacion usada para recibir pagos.</p>
+          <label>Pais<input type="text" value="Colombia" /></label>
+          <label>Banco<input type="text" value="Banco Ejemplo" /></label>
+          <label>Tipo de cuenta<select><option>Ahorros</option><option>Corriente</option></select></label>
+          <label>Numero de cuenta<input type="text" value="1234567890" /></label>
+          <label>Titular de la cuenta<input type="text" value="Andrea Usuario01" /></label>
+          <button type="button" class="primary-action save-demo-button" data-message="Informacion de pago actualizada">Guardar informacion</button>
+          <p class="save-feedback" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="screen" id="password-screen" aria-label="Cambiar contrasena">
+        <nav class="topbar">
+          <button class="icon-button" data-screen="settings-screen" aria-label="Volver">&lsaquo;</button>
+          <strong>Cambiar contrasena</strong>
+          <span></span>
+        </nav>
+        <form class="flow-panel" id="password-form">
+          <p class="privacy-note">Pantalla #13. Para la prueba, la contrasena actual es <strong>Orienta123</strong>.</p>
+          <label>Contrasena actual<input id="current-password" type="password" autocomplete="current-password" placeholder="Ingresa tu contrasena actual" /></label>
+          <label>Nueva contrasena<input id="new-password" type="password" autocomplete="new-password" placeholder="Minimo 8 caracteres" /></label>
+          <label>Confirmar nueva contrasena<input id="confirm-password" type="password" autocomplete="new-password" placeholder="Repite la nueva contrasena" /></label>
+          <button type="button" class="primary-action" id="change-password-button">Actualizar contrasena</button>
+          <p class="save-feedback" id="password-feedback" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="screen" id="professional-rate-screen" aria-label="Modificar tarifa profesional">
+        <nav class="topbar">
+          <button class="icon-button" data-screen="settings-screen" aria-label="Volver">&lsaquo;</button>
+          <strong>Tarifa por minuto</strong>
+          <span></span>
+        </nav>
+        <form class="flow-panel" id="professional-rate-form">
+          <p class="privacy-note">Pantalla #15. Esta opcion solo esta disponible para profesionales.</p>
+          <section class="professional-summary">
+            <p><strong>Usuario:</strong> OrientapProfesional1</p>
+            <p><strong>Profesional:</strong> Laura Usuario01</p>
+            <p><strong>Area:</strong> Derecho laboral</p>
+            <p><strong>Calificacion:</strong> 4.9</p>
+          </section>
+          <label>Tarifa actual por minuto<input id="professional-rate-input" type="number" min="750" max="1500" value="1200" /></label>
+          <p class="field-help">Valor permitido para la prueba: entre $750 y $1.500 COP por minuto.</p>
+          <button type="button" class="primary-action" id="save-professional-rate">Guardar tarifa</button>
+          <p class="save-feedback" id="rate-feedback" aria-live="polite"></p>
+        </form>
+      </section>
     </main>
     <script src="app.js"></script>
   </body>
