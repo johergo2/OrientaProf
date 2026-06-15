@@ -155,9 +155,8 @@ Pagos descentralizados con cUSD (stablecoin en CELO) mediante escrow inteligente
 │   │   └── callback/route.ts
 │   ├── dashboard/
 │   │   ├── client/
-│   │   │   ├── page.tsx
-│   │   │   ├── requests/page.tsx
-│   │   │   └── professionals/page.tsx
+│   │   │   ├── page.tsx                   # Dashboard cliente completo
+│   │   │   └── my-requests/page.tsx       # Mis consultas
 │   │   └── professional/
 │   │       ├── page.tsx
 │   │       ├── requests/page.tsx
@@ -178,11 +177,9 @@ Pagos descentralizados con cUSD (stablecoin en CELO) mediante escrow inteligente
 │       │   ├── [id]/route.ts
 │       │   └── me/route.ts
 │       ├── professionals/
-│       │   ├── route.ts
-│       │   ├── [id]/route.ts
-│       │   └── rate/route.ts
+│       │   └── route.ts                   # GET listar profesionales
 │       ├── requests/
-│       │   ├── route.ts
+│       │   ├── route.ts                   # GET listar consultas del usuario
 │       │   └── [id]/
 │       │       ├── route.ts
 │       │       └── respond/route.ts
@@ -524,10 +521,14 @@ El backend se comunica con los contratos mediante:
 - Login funcional con NextAuth (credentials + JWT)
 - Middleware de protección de rutas por rol
 - Schema Prisma completo con 9 modelos y seed de prueba
+- API endpoint `GET /api/professionals` — lista profesionales activos con perfil, rating, categorías y diplomas
+- API endpoint `GET /api/requests` — lista consultas del usuario autenticado
+- Dashboard cliente (`/dashboard/client`) funcional: header con navegación, pestañas Publicar Consulta / Buscar Profesional, listado de profesionales desde BD con tarjetas expandibles (Diplomas, Experiencia, Servicios)
+- Página Mis Consultas (`/dashboard/client/my-requests`) con listado, descripción expandible, acciones Modificar/Cancelar/Eliminar, botón Nueva Consulta y estado vacío controlado
 - Prototipo legacy `frontend/` preservado como referencia
 
 ### Siguiente paso
-Completar dashboards de cliente y profesional (Lote 4). El plan detallado de 82 tareas está en `TODO_MVP.md`.
+Implementar dashboard profesional y flujo de respuesta a consultas (Lote 4). El plan detallado de 82 tareas está en `TODO_MVP.md`.
 
 ### Convenios del proyecto
 - **Estado**: `[ ]` Pendiente, `[x]` Completado, `[~]` En progreso

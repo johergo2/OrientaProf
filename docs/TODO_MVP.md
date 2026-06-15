@@ -1,7 +1,7 @@
 # TODO MVP — OrientaProf
 
 > Proyecto: OrientaProf — Orientación con Profesionales
-> Estado actual: Migración a Next.js iniciada — Registro funcional (cliente + profesional)
+> Estado actual: Migración a Next.js — Registro funcional + Dashboard Cliente + API Profesionales
 > Objetivo: MVP full-stack con pagos en blockchain CELO
 
 ---
@@ -60,12 +60,14 @@ _Objetivo: API REST funcional con autenticación real, validación y base de dat
       GET (perfil público), PUT (actualizar propio perfil), DELETE (baja lógica)
 - [ ] **P0 M** Endpoint perfil propio (`/api/users/me`)
       GET perfil completo + ProfessionalProfile si aplica
-- [ ] **P0 M** CRUD consultas (`/api/requests`)
-      POST (crear), GET (listar por rol: cliente ve las suyas, profesional ve disponibles)
+- [x] **P0 M** CRUD consultas (`/api/requests`)
+      GET listar consultas del usuario autenticado (cliente ve sus consultas)
+      Creado GET /api/requests — retorna consultas del cliente autenticado ordenadas por fecha
 - [ ] **P0 M** Endpoint responder consulta (`/api/requests/[id]/respond`)
       Profesional responde → cambia status a RESPONDED + crea Message
-- [ ] **P0 M** CRUD profesionales (`/api/professionals`)
-      GET listar con filtros (categoría, rating, rango tarifa)
+- [x] **P0 M** CRUD profesionales (`/api/professionals`)
+      GET listar profesionales + categorías (categoría, rating, rango tarifa)
+      Creado GET /api/professionals — retorna profesionales activos con perfil, rating y categorías
 - [ ] **P0 M** Endpoint actualizar tarifa profesional (`/api/professionals/rate`)
       PUT valida rango 750-1500 COP
 - [ ] **P0 M** CRUD mensajes (`/api/messages`)
@@ -105,20 +107,21 @@ _Objetivo: Sistema de autenticación completo desde el frontend._
 
 _Objetivo: Dashboards funcionales para cliente y profesional conectados a la API._
 
-- [ ] **P1 M** Dashboard cliente (`/dashboard/client`)
-      Segment: "Publicar consulta" ↔ "Buscar profesional"
+- [x] **P1 M** Dashboard cliente (`/dashboard/client`)
+      Página completa con header (back, mensajes, calendario, settings), tabs "Publicar Consulta" ↔ "Buscar Profesional", listado de profesionales desde BD
 - [ ] **P1 M** Componente `RequestForm.tsx`
       Categoría (select), título, descripción → POST /api/requests
 - [ ] **P1 M** Componente `ProfessionalSearch.tsx`
       Filtro por categoría + lista de `ProfessionalCard`
-- [ ] **P1 M** Componente `ProfessionalCard.tsx`
+- [x] **P1 M** Componente `ProfessionalCard.tsx`
       Nombre, profesión, rating, tarifa, botón expandir detalles + "Consultar"
+      Implementado directamente en dashboard cliente: tarjeta expandible con Diplomas, Experiencia y Servicios
 - [ ] **P1 M** Dashboard profesional (`/dashboard/professional`)
       Lista de consultas disponibles con filtro por categoría
 - [ ] **P1 M** Componente `AvailableRequests.tsx`
       Cards de consultas con botón "Responder ofreciendo servicios"
-- [ ] **P1 M** Página `/dashboard/client/requests` (Mis consultas)
-      Lista con estado (Pendiente/Respondida/Cancelada), acciones editar/cancelar/eliminar
+- [x] **P1 M** Página `/dashboard/client/my-requests` (Mis consultas)
+      Lista con estado (Pendiente/Resuelta/Cancelada), descripción expandible, acciones editar/cancelar/eliminar, botón Nueva Consulta, estado vacío controlado
 - [ ] **P1 M** Página de consulta directa a profesional
       Formulario con profesional seleccionado, título + descripción → crea Request
 - [ ] **P1 S** Integrar TanStack Query para fetching
@@ -238,16 +241,16 @@ _Objetivo: MVP desplegado y documentado._
 | Lote | Tareas | Prioridad | Estado |
 |------|--------|-----------|--------|
 | 1 — Fundación | 11 | P0 | `10/11` |
-| 2 — Backend API | 12 | P0 | `2/12` |
+| 2 — Backend API | 12 | P0 | `4/12` |
 | 3 — Auth y Layout | 8 | P1 | `4/8` |
-| 4 — Dashboards | 8 | P1 | `0/8` |
+| 4 — Dashboards | 8 | P1 | `3/8` |
 | 5 — Mensajes y Citas | 5 | P1 | `0/5` |
 | 6 — Settings | 5 | P2 | `0/5` |
 | 7 — Blockchain CELO | 9 | P2 | `0/9` |
 | 8 — UX | 8 | P2 | `0/8` |
 | 9 — Testing | 7 | P3 | `0/7` |
 | 10 — Deploy y Docs | 10 | P3 | `0/10` |
-| **Total** | **82** | — | **16/82** |
+| **Total** | **82** | — | **20/82** |
 
 ---
 
