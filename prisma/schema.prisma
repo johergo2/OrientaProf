@@ -1,0 +1,260 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CLIENT
+  PROFESSIONAL
+}
+
+enum RequestStatus {
+  PENDING
+  RESPONDED
+  CANCELLED
+  COMPLETED
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED_CLIENT
+  CONFIRMED_BOTH
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum EscrowStatus {
+  PENDIENTE
+  LIBERADA
+  REEMBOLSADA
+}
+
+model User {
+  id             String   @id @default(cuid())
+  username       String   @unique
+  email          String   @unique
+  passwordHash   String
+  role           Role     @default(CLIENT)
+  fullName       String
+  documentType   String?
+  documentNumber String?
+  gender         String?
+  country        String?
+  city           String?
+  dateOfBirth    DateTime?
+  address        String?
+  walletAddress  String?
+  emailVerified  DateTime?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  professionalProfile       ProfessionalProfile?
+  bankInfo                  BankInfo?
+  sentMessages              Message[]              @relation("Sender")
+  receivedMessages          Message[]              @relation("Receiver")
+  clientRequests            Request[]              @relation("ClientRequests")
+  professionalRequests      Request[]              @relation("ProfessionalRequests")
+  clientAppointments        Appointment[]          @relation("ClientAppointments")
+  professionalAppointments  Appointment[]          @relation("ProfessionalAppointments")
+  paymentTransactionsSent   PaymentTransaction[]   @relation("SenderTransactions")
+  paymentTransactionsReceived PaymentTransaction[] @relation("ReceiverTransactions")
+  auditLogs                 AuditLog[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model ProfessionalProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profession      String
+  ratePerMinute   Float    @default(1200)
+  rating          Float    @default(0)
+  ratingCount     Int      @default(0)
+  experienceYears Int?
+  description     String?
+  documentFile    String?
+  diplomaFile     String?
+  isVerified      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  categories ProfessionalCategory[]
+
+  @@index([profession])
+  @@index([ratePerMinute])
+  @@index([rating])
+}
+
+model ProfessionalCategory {
+  id        String             @id @default(cuid())
+  profileId String
+  profile   ProfessionalProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  name      String
+
+  @@unique([profileId, name])
+  @@index([name])
+}
+
+model BankInfo {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  country       String   @default("Colombia")
+  bankName      String
+  accountType   String
+  accountNumber String
+  accountHolder String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Request {
+  id              String        @id @default(cuid())
+  clientId        String
+  client          User          @relation("ClientRequests", fields: [clientId], references: [id], onDelete: Cascade)
+  professionalId  String?
+  professional    User?         @relation("ProfessionalRequests", fields: [professionalId], references: [id])
+  category        String
+  title           String
+  description     String
+  status          RequestStatus @default(PENDING)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  messages Message[]
+  appointments Appointment[]
+
+  @@index([clientId])
+  @@index([professionalId])
+  @@index([status])
+  @@index([category])
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  requestId   String?
+  request     Request? @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  senderId    String
+  sender      User     @relation("Sender", fields: [senderId], references: [id])
+  receiverId  String
+  receiver    User     @relation("Receiver", fields: [receiverId], references: [id])
+  content     String
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([requestId])
+}
+
+model Appointment {
+  id              String            @id @default(cuid())
+  clientId        String
+  client          User              @relation("ClientAppointments", fields: [clientId], references: [id], onDelete: Cascade)
+  professionalId  String
+  professional    User              @relation("ProfessionalAppointments", fields: [professionalId], references: [id])
+  requestId       String?
+  request         Request?          @relation(fields: [requestId], references: [id])
+  scheduledAt     DateTime
+  durationMinutes Int               @default(20)
+  status          AppointmentStatus @default(SCHEDULED)
+  videoRoomUrl    String?
+  transactionHash String?
+  totalCost       Float?
+  clientConfirmed Boolean           @default(false)
+  professionalConfirmed Boolean     @default(false)
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  attendanceConfirmation AttendanceConfirmation?
+  paymentTransaction      PaymentTransaction?
+  escrowTransaction       EscrowTransaction?
+
+  @@index([clientId])
+  @@index([professionalId])
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+model AttendanceConfirmation {
+  id              String   @id @default(cuid())
+  appointmentId   String   @unique
+  appointment     Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  clientConfirmed  Boolean  @default(false)
+  proConfirmed     Boolean  @default(false)
+  clientConfirmedAt DateTime?
+  proConfirmedAt   DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model PaymentTransaction {
+  id              String         @id @default(cuid())
+  appointmentId   String?   @unique
+  appointment     Appointment?   @relation(fields: [appointmentId], references: [id])
+  fromUserId      String
+  fromUser        User           @relation("SenderTransactions", fields: [fromUserId], references: [id])
+  toUserId        String
+  toUser          User           @relation("ReceiverTransactions", fields: [toUserId], references: [id])
+  amount          Float
+  currency        String         @default("COP")
+  method          String         @default("CELO")
+  transactionHash String?
+  status          String         @default("PENDING")
+  description     String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@index([appointmentId])
+  @@index([transactionHash])
+}
+
+model EscrowTransaction {
+  id              String       @id @default(cuid())
+  appointmentId   String       @unique
+  appointment     Appointment  @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  clientAddress   String
+  professionalAddress String
+  amount          Float
+  platformFee     Float        @default(0)
+  status          EscrowStatus @default(PENDIENTE)
+  depositTxHash   String?
+  releaseTxHash   String?
+  refundTxHash    String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([status])
+  @@index([clientAddress])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  action     String
+  entity     String
+  entityId   String?
+  metadata   Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+}

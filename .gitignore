@@ -2,5 +2,8 @@
 .env.local
 node_modules/
 dist/
+.next/
+*.tsbuildinfo
+next-env.d.ts
 .DS_Store
 .tools/
