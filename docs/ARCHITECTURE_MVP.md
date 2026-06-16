@@ -49,8 +49,8 @@ OrientaProf conecta **usuarios** que buscan orientación profesional con **profe
 │   │   │   └── professionals/page.tsx      # Buscar profesionales
 │   │   └── professional/
 │   │       ├── page.tsx                    # Dashboard profesional
-│   │       ├── requests/page.tsx           # Consultas disponibles
-│   │       └── rate/page.tsx              # Modificar tarifa
+│   │       └── respond/
+│   │           └── [requestId]/page.tsx    # Responder consulta
 │   ├── messages/
 │   │   └── page.tsx                        # Bandeja de mensajes
 │   ├── appointments/
@@ -74,10 +74,9 @@ OrientaProf conecta **usuarios** que buscan orientación profesional con **profe
 │       │   ├── [id]/route.ts              # Perfil profesional
 │       │   └── rate/route.ts              # Actualizar tarifa
 │       ├── requests/
-│       │   ├── route.ts                    # CRUD consultas
+│       │   ├── route.ts                    # GET listar + POST crear consultas
 │       │   └── [id]/
-│       │       ├── route.ts                # Consulta individual
-│       │       └── respond/route.ts       # Responder consulta
+│       │       └── route.ts                # GET detalle + POST responder
 │       ├── messages/
 │       │   └── route.ts                    # Mensajes (CRUD)
 │       ├── appointments/

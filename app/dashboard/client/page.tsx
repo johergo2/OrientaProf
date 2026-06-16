@@ -31,6 +31,8 @@ export default function ClientDashboard() {
   const [publishCategory, setPublishCategory] = useState("")
   const [publishTitle, setPublishTitle] = useState("")
   const [publishDescription, setPublishDescription] = useState("")
+  const [publishing, setPublishing] = useState(false)
+  const [publishError, setPublishError] = useState("")
 
   const [filterCategory, setFilterCategory] = useState("")
   const [expandedCard, setExpandedCard] = useState<string | null>(null)
@@ -171,12 +173,49 @@ export default function ClientDashboard() {
                 />
               </div>
 
+              {publishError && (
+                <p className="text-red-500 text-xs text-center">{publishError}</p>
+              )}
+
               <button
                 type="button"
-                onClick={() => router.push("/dashboard/client/my-requests")}
-                className="w-full bg-brand-700 text-white rounded-lg py-3 font-bold cursor-pointer hover:bg-brand-900 transition-colors shadow-[0_4px_6px_rgba(0,0,0,0.15)] active:shadow-[0_1px_2px_rgba(0,0,0,0.15)] active:translate-y-[2px]"
+                onClick={async () => {
+                  setPublishError("")
+                  setPublishing(true)
+                  try {
+                    const res = await fetch("/api/requests", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        category: publishCategory,
+                        title: publishTitle,
+                        description: publishDescription,
+                      }),
+                    })
+                    const json = await res.json()
+                    if (!json.success) {
+                      if (json.data) {
+                        const errors = Object.values(json.data as Record<string, string[]>).flat().join(", ")
+                        setPublishError(errors)
+                      } else {
+                        setPublishError(json.error ?? "Error al publicar consulta")
+                      }
+                      return
+                    }
+                    setPublishCategory("")
+                    setPublishTitle("")
+                    setPublishDescription("")
+                    router.push("/dashboard/client/my-requests")
+                  } catch {
+                    setPublishError("Error de conexión al publicar consulta")
+                  } finally {
+                    setPublishing(false)
+                  }
+                }}
+                disabled={publishing}
+                className="w-full bg-brand-700 text-white rounded-lg py-3 font-bold cursor-pointer hover:bg-brand-900 transition-colors shadow-[0_4px_6px_rgba(0,0,0,0.15)] active:shadow-[0_1px_2px_rgba(0,0,0,0.15)] active:translate-y-[2px] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Publicar Consulta
+                {publishing ? "Publicando..." : "Publicar Consulta"}
               </button>
 
               <button

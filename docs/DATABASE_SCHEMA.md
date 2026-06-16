@@ -524,7 +524,7 @@ CREAR CONSULTA:
     → INSERT Request { status: PENDING }
 
 RESPONDER CONSULTA:
-  POST /api/requests/:id/respond
+  POST /api/requests/:id
     → UPDATE Request { status: RESPONDED, professionalId }
     → INSERT Message { requestId, senderId, receiverId }
 

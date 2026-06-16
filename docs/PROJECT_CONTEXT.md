@@ -158,9 +158,9 @@ Pagos descentralizados con cUSD (stablecoin en CELO) mediante escrow inteligente
 │   │   │   ├── page.tsx                   # Dashboard cliente completo
 │   │   │   └── my-requests/page.tsx       # Mis consultas
 │   │   └── professional/
-│   │       ├── page.tsx
-│   │       ├── requests/page.tsx
-│   │       └── rate/page.tsx
+│   │       ├── page.tsx                     # Dashboard profesional
+│   │       └── respond/
+│   │           └── [requestId]/page.tsx     # Responder consulta
 │   ├── messages/page.tsx
 │   ├── appointments/page.tsx
 │   ├── settings/
@@ -179,10 +179,9 @@ Pagos descentralizados con cUSD (stablecoin en CELO) mediante escrow inteligente
 │       ├── professionals/
 │       │   └── route.ts                   # GET listar profesionales
 │       ├── requests/
-│       │   ├── route.ts                   # GET listar consultas del usuario
+│       │   ├── route.ts                   # GET listar + POST crear consultas
 │       │   └── [id]/
-│       │       ├── route.ts
-│       │       └── respond/route.ts
+│       │       └── route.ts               # GET detalle + POST responder
 │       ├── messages/route.ts
 │       ├── appointments/route.ts
 │       └── payments/
@@ -516,19 +515,26 @@ El backend se comunica con los contratos mediante:
 ## 6. Estado Actual del Proyecto
 
 ### Estado actual (Next.js)
-- Migración iniciada a Next.js 16 + TypeScript + Tailwind v4 + Prisma + NextAuth v5
+- Migración iniciada a Next.js 16 + TypeScript + Tailwind v4 + Prisma v5 + NextAuth v5
 - Registro de clientes y profesionales funcional con validación Zod
 - Login funcional con NextAuth (credentials + JWT)
 - Middleware de protección de rutas por rol
-- Schema Prisma completo con 9 modelos y seed de prueba
-- API endpoint `GET /api/professionals` — lista profesionales activos con perfil, rating, categorías y diplomas
-- API endpoint `GET /api/requests` — lista consultas del usuario autenticado
-- Dashboard cliente (`/dashboard/client`) funcional: header con navegación, pestañas Publicar Consulta / Buscar Profesional, listado de profesionales desde BD con tarjetas expandibles (Diplomas, Experiencia, Servicios)
-- Página Mis Consultas (`/dashboard/client/my-requests`) con listado, descripción expandible, acciones Modificar/Cancelar/Eliminar, botón Nueva Consulta y estado vacío controlado
+- Schema Prisma completo con 11 modelos y seed de prueba (PostgreSQL 18.4 local)
+- API endpoints implementados:
+  - `GET /api/professionals` — lista profesionales activos con perfil, rating, categorías
+  - `GET /api/requests` — CLIENT ve sus consultas, PROFESSIONAL ve PENDING + categorías
+  - `POST /api/requests` — crear consulta (cliente)
+  - `GET /api/requests/[id]` — detalle de consulta individual
+  - `POST /api/requests/[id]` — profesional responde (crea Message + status RESPONDED)
+  - `POST /api/auth/register` — registro dual-rol
+- Dashboard cliente (`/dashboard/client`) funcional: publicar consulta (POST real), buscar profesional, categorías desde BD
+- Página Mis Consultas (`/dashboard/client/my-requests`) con listado, descripción expandible, acciones Modificar/Cancelar/Eliminar
+- Dashboard profesional (`/dashboard/professional`) con consultas PENDING, filtro por categoría, botón "Responder ofreciendo asesoría"
+- Página responder consulta (`/dashboard/professional/respond/[requestId]`) con detalle + textarea + envío de propuesta
 - Prototipo legacy `frontend/` preservado como referencia
 
 ### Siguiente paso
-Implementar dashboard profesional y flujo de respuesta a consultas (Lote 4). El plan detallado de 82 tareas está en `TODO_MVP.md`.
+Implementar endpoints faltantes de Lote 2 (PUT /api/users/me, GET /api/messages, POST /api/messages, citas). El plan detallado de 82 tareas está en `TODO_MVP.md`.
 
 ### Convenios del proyecto
 - **Estado**: `[ ]` Pendiente, `[x]` Completado, `[~]` En progreso

@@ -368,7 +368,7 @@ Actualiza la tarifa por minuto del profesional autenticado.
 
 ### `POST /api/requests`
 
-Crea una nueva consulta (solo CLIENT).
+Crea una nueva consulta (solo CLIENT). **Implementado.**
 
 **Request body**:
 ```json
@@ -400,10 +400,10 @@ Crea una nueva consulta (solo CLIENT).
 
 ### `GET /api/requests`
 
-Lista consultas según el rol del usuario autenticado.
+Lista consultas según el rol del usuario autenticado. **Implementado.**
 
 - **CLIENT**: Ve sus propias consultas
-- **PROFESSIONAL**: Ve consultas PENDING disponibles (públicas)
+- **PROFESSIONAL**: Ve consultas PENDING disponibles (públicas), además retorna `categories[]` y `professionalUsername`
 
 **Query params**:
 | Parámetro | Tipo | Descripción |
@@ -436,7 +436,7 @@ Lista consultas según el rol del usuario autenticado.
 
 ### `GET /api/requests/:id`
 
-Obtiene una consulta individual con sus mensajes.
+Obtiene una consulta individual con datos del cliente. **Implementado.**
 
 **Response `200`**:
 ```json
@@ -448,8 +448,7 @@ Obtiene una consulta individual con sus mensajes.
     "title": "Revisión de liquidación laboral",
     "description": "Tengo dudas sobre mi liquidación...",
     "status": "RESPONDED",
-    "client": { "id": "clx...", "fullName": "Andrea Usuario01" },
-    "professional": { "id": "clx...", "fullName": "Laura Usuario01" },
+    "client": { "username": "Orientap1", "fullName": "Andrea Usuario01" },
     "messages": [
       {
         "id": "clx...",
@@ -478,9 +477,9 @@ Elimina una consulta (solo CLIENT, solo si PENDING).
 
 **Response `200`**: `{ "success": true, "data": { "message": "Consulta eliminada" } }`
 
-### `POST /api/requests/:id/respond`
+### `POST /api/requests/:id`
 
-Profesional responde a una consulta (solo PROFESSIONAL, solo si PENDING).
+Profesional responde a una consulta (solo PROFESSIONAL, solo si PENDING). **Implementado.**
 
 **Request body**:
 ```json
@@ -494,13 +493,9 @@ Profesional responde a una consulta (solo PROFESSIONAL, solo si PENDING).
 {
   "success": true,
   "data": {
-    "message": {
-      "id": "clx...",
-      "sender": { "id": "clx...", "fullName": "Laura Usuario01" },
-      "content": "Puedo ayudarte a revisar la liquidación...",
-      "createdAt": "2026-06-14T10:30:00Z"
-    },
-    "requestStatus": "RESPONDED"
+    "requestId": "clx...",
+    "status": "RESPONDED",
+    "message": "Su propuesta de asesoría fue enviada correctamente al cliente."
   }
 }
 ```
@@ -508,7 +503,7 @@ Profesional responde a una consulta (solo PROFESSIONAL, solo si PENDING).
 **Efectos secundarios**:
 - Request.status cambia a RESPONDED
 - Request.professionalId se asigna al profesional que respondió
-- Se crea un Message en el hilo
+- Se crea un Message en el hilo (sender = profesional, receiver = cliente)
 
 ### `POST /api/requests/:id/cancel`
 
@@ -983,12 +978,12 @@ Notifica cambios de estado durante la videollamada.
 | `GET` | `/api/professionals` | Cualquiera | Listar profesionales |
 | `GET` | `/api/professionals/:id` | Cualquiera | Perfil profesional |
 | `PUT` | `/api/professionals/rate` | PROFESSIONAL | Actualizar tarifa |
-| `POST` | `/api/requests` | CLIENT | Crear consulta |
-| `GET` | `/api/requests` | Ambos | Listar consultas |
-| `GET` | `/api/requests/:id` | Ambos | Detalle consulta |
+| `POST` | `/api/requests` | CLIENT | Crear consulta ✅ |
+| `GET` | `/api/requests` | Ambos | Listar consultas ✅ |
+| `GET` | `/api/requests/:id` | Ambos | Detalle consulta ✅ |
 | `PUT` | `/api/requests/:id` | CLIENT | Editar consulta |
 | `DELETE` | `/api/requests/:id` | CLIENT | Eliminar consulta |
-| `POST` | `/api/requests/:id/respond` | PROFESSIONAL | Responder consulta |
+| `POST` | `/api/requests/:id` | PROFESSIONAL | Responder consulta ✅ |
 | `POST` | `/api/requests/:id/cancel` | CLIENT | Cancelar consulta |
 | `GET` | `/api/messages` | Cualquiera | Bandeja de mensajes |
 | `POST` | `/api/messages` | Cualquiera | Enviar mensaje |

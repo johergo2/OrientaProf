@@ -61,10 +61,11 @@ _Objetivo: API REST funcional con autenticación real, validación y base de dat
 - [ ] **P0 M** Endpoint perfil propio (`/api/users/me`)
       GET perfil completo + ProfessionalProfile si aplica
 - [x] **P0 M** CRUD consultas (`/api/requests`)
-      GET listar consultas del usuario autenticado (cliente ve sus consultas)
-      Creado GET /api/requests — retorna consultas del cliente autenticado ordenadas por fecha
-- [ ] **P0 M** Endpoint responder consulta (`/api/requests/[id]/respond`)
-      Profesional responde → cambia status a RESPONDED + crea Message
+      GET listar consultas del usuario autenticado (cliente ve sus consultas, profesional ve PENDING)
+      POST /api/requests — crear consulta (cliente)
+      GET /api/requests/[id] — detalle de consulta individual
+- [x] **P0 M** Endpoint responder consulta (`/api/requests/[id]`)
+      POST /api/requests/[id] — profesional responde → status RESPONDED + crea Message + asigna professionalId
 - [x] **P0 M** CRUD profesionales (`/api/professionals`)
       GET listar profesionales + categorías (categoría, rating, rango tarifa)
       Creado GET /api/professionals — retorna profesionales activos con perfil, rating y categorías
@@ -116,8 +117,13 @@ _Objetivo: Dashboards funcionales para cliente y profesional conectados a la API
 - [x] **P1 M** Componente `ProfessionalCard.tsx`
       Nombre, profesión, rating, tarifa, botón expandir detalles + "Consultar"
       Implementado directamente en dashboard cliente: tarjeta expandible con Diplomas, Experiencia y Servicios
-- [ ] **P1 M** Dashboard profesional (`/dashboard/professional`)
+- [x] **P1 M** Dashboard profesional (`/dashboard/professional`)
       Lista de consultas disponibles con filtro por categoría
+      Botón "Responder ofreciendo asesoría" navega a /dashboard/professional/respond/[requestId]
+- [x] **P1 M** Página responder consulta (`/dashboard/professional/respond/[requestId]`)
+      Muestra detalle de consulta (cliente, categoría, título, descripción, fecha)
+      Textarea + botón "Enviar propuesta de asesoría"
+      Crea Message + actualiza Request a RESPONDED
 - [ ] **P1 M** Componente `AvailableRequests.tsx`
       Cards de consultas con botón "Responder ofreciendo servicios"
 - [x] **P1 M** Página `/dashboard/client/my-requests` (Mis consultas)
@@ -241,16 +247,16 @@ _Objetivo: MVP desplegado y documentado._
 | Lote | Tareas | Prioridad | Estado |
 |------|--------|-----------|--------|
 | 1 — Fundación | 11 | P0 | `10/11` |
-| 2 — Backend API | 12 | P0 | `4/12` |
+| 2 — Backend API | 12 | P0 | `6/12` |
 | 3 — Auth y Layout | 8 | P1 | `4/8` |
-| 4 — Dashboards | 8 | P1 | `3/8` |
+| 4 — Dashboards | 8 | P1 | `5/8` |
 | 5 — Mensajes y Citas | 5 | P1 | `0/5` |
 | 6 — Settings | 5 | P2 | `0/5` |
 | 7 — Blockchain CELO | 9 | P2 | `0/9` |
 | 8 — UX | 8 | P2 | `0/8` |
 | 9 — Testing | 7 | P3 | `0/7` |
 | 10 — Deploy y Docs | 10 | P3 | `0/10` |
-| **Total** | **82** | — | **20/82** |
+| **Total** | **82** | — | **24/82** |
 
 ---
 
