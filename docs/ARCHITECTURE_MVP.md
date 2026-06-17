@@ -2,320 +2,144 @@
 
 ## Visión General
 
-OrientaProf conecta **usuarios** que buscan orientación profesional con **profesionales** (abogados, médicos, contadores, ingenieros, etc.) mediante videollamadas cortas pagadas por minuto. El sistema evoluciona de un prototipo frontend vanilla hacia una **arquitectura moderna full-stack** con capa blockchain en CELO para pagos transparentes.
+OrientaProf conecta **usuarios** que buscan orientación profesional con **profesionales** (abogados, médicos, contadores, ingenieros, etc.) mediante videollamadas cortas pagadas por minuto. Los pagos se manejan mediante un smart contract en CELO que actúa como escrow.
 
 ---
 
-## Stack Tecnológico
+## Stack Tecnológico (Actual)
 
 | Capa | Tecnología | Propósito |
 |------|-----------|-----------|
-| **Frontend** | Next.js 14+ (App Router) + TypeScript | SSR, SPA, enrutamiento, API Routes |
-| **Estilos** | Tailwind CSS | Sistema utility-first, responsive, mobile-first |
-| **Estado** | Zustand | Estado global liviano del lado cliente |
-| **Fetching** | TanStack Query (React Query) | Caché, sincronización, mutaciones de API |
-| **Formularios** | React Hook Form + Zod | Validación cliente/servidor tipada |
-| **Auth** | NextAuth.js (JWT) | Autenticación con sesiones y roles |
-| **Backend** | Next.js API Routes | API RESTful unificada con el frontend |
-| **ORM** | Prisma | Tipado seguro de base de datos |
+| **Frontend** | Next.js 16 (App Router) + TypeScript | SSR, SPA, enrutamiento, API Routes |
+| **Estilos** | Tailwind CSS v4 | Sistema utility-first, responsive mobile-first, `@theme inline` |
+| **Auth** | NextAuth.js v5 (JWT, credentials) | Autenticación con sesiones y roles |
+| **Backend** | Next.js API Routes | API RESTful unificada con el frontend (17 endpoints) |
+| **ORM** | Prisma v5 | Tipado seguro de base de datos (11 modelos) |
 | **Base de datos** | PostgreSQL | Datos relacionales del negocio |
-| **Video** | Jitsi Meet API (embebido) | Videollamadas sin infraestructura propia |
-| **Smart Contracts** | Solidity + Hardhat | Lógica de pagos on-chain |
-| **Blockchain** | Celo (Alfajores → Mainnet) | Pagos con cUSD, transparencia |
-| **Wallet** | RainbowKit + Wagmi + Viem | Conexión de wallets (MetaMask, Valora) |
-| **SDK Celo** | @celo/contractkit | Interacción con contratos en Celo |
-| **Testing** | Vitest + Playwright | Tests unitarios y de integración |
-| **Deploy** | Vercel (frontend) + Railway (DB) + Celo (contracts) | Infraestructura cloud |
+| **Video** | Jitsi Meet vía iframe (`meet.jit.si`) | Videollamadas sin infraestructura propia |
+| **Smart Contract** | Solidity 0.8.20 + OpenZeppelin Ownable | Escrow en CELO nativo |
+| **Blockchain** | Celo Sepolia (testnet) | Pagos con CELO nativo |
+| **Wallet** | WalletConnect via `window.ethereum` (Rabby/MetaMask) | Conexión directa sin dependencias externas |
+| **Ethers** | ethers v6 | Interacción con contratos desde backend (JsonRpcProvider + Wallet) |
+| **Hardhat** | Hardhat (CommonJS) | Deploy y scripts blockchain |
+| **Formularios** | Zod | Schemas de validación compartidos |
+| **Deploy** | Vercel (frontend) + Supabase (DB) | Infraestructura cloud |
 
 ---
 
-## Estructura de Directorios
+## Estructura de Directorios (Actual)
 
 ```
 /
-├── app/                                    # Next.js 14 App Router
-│   ├── layout.tsx                          # Layout raíz (Providers, Navbar)
-│   ├── page.tsx                            # Landing / Welcome
+├── app/                              # Next.js 16 App Router
+│   ├── layout.tsx                    # Layout raíz (PhoneShell max-width 420px)
+│   ├── page.tsx                      # Landing / Welcome
+│   ├── globals.css                   # Tailwind v4 + colores brand-*
 │   ├── auth/
-│   │   ├── login/page.tsx                  # Inicio de sesión
-│   │   ├── register/
-│   │   │   ├── client/page.tsx             # Registro usuario
-│   │   │   └── professional/page.tsx       # Registro profesional
-│   │   └── callback/route.ts              # NextAuth callback
+│   │   ├── login/page.tsx
+│   │   └── register/
+│   │       ├── client/page.tsx
+│   │       └── professional/page.tsx
 │   ├── dashboard/
 │   │   ├── client/
-│   │   │   ├── page.tsx                    # Dashboard cliente
-│   │   │   ├── requests/page.tsx           # Mis consultas
-│   │   │   └── professionals/page.tsx      # Buscar profesionales
+│   │   │   ├── page.tsx              # Dashboard cliente
+│   │   │   └── my-requests/page.tsx
 │   │   └── professional/
-│   │       ├── page.tsx                    # Dashboard profesional
+│   │       ├── page.tsx              # Dashboard profesional (consultas + wallet)
 │   │       └── respond/
-│   │           └── [requestId]/page.tsx    # Responder consulta
-│   ├── messages/
-│   │   └── page.tsx                        # Bandeja de mensajes
+│   │           └── [requestId]/page.tsx
 │   ├── appointments/
-│   │   └── page.tsx                        # Calendario de citas
-│   ├── settings/
-│   │   ├── page.tsx                        # Menú configuración
-│   │   ├── personal-data/page.tsx          # Datos personales
-│   │   ├── password/page.tsx               # Cambiar contraseña
-│   │   └── payment/page.tsx               # Información de pago
-│   ├── consultation/
-│   │   └── [id]/page.tsx                   # Sala de videollamada
-│   └── api/                               # API Routes (backend)
+│   │   ├── page.tsx                  # Lista + modal pago CELO
+│   │   └── [id]/room/page.tsx        # Sala Jitsi Meet
+│   ├── messages/
+│   │   ├── page.tsx                  # Bandeja de conversaciones
+│   │   └── [conversationId]/page.tsx # Hilo de mensajes
+│   └── api/
 │       ├── auth/
-│       │   ├── [...nextauth]/route.ts      # NextAuth handler
-│       │   └── register/route.ts           # Registro de usuarios
-│       ├── users/
-│       │   ├── [id]/route.ts               # CRUD usuario
-│       │   └── me/route.ts                 # Perfil del usuario autenticado
-│       ├── professionals/
-│       │   ├── route.ts                    # Listar profesionales
-│       │   ├── [id]/route.ts              # Perfil profesional
-│       │   └── rate/route.ts              # Actualizar tarifa
+│       │   ├── [...nextauth]/route.ts
+│       │   └── register/route.ts
+│       ├── user/
+│       │   ├── wallet/route.ts       # PATCH walletAddress
+│       │   └── profile/route.ts      # GET perfil propio
+│       ├── professionals/route.ts    # GET listar
 │       ├── requests/
-│       │   ├── route.ts                    # GET listar + POST crear consultas
+│       │   ├── route.ts              # GET listar + POST crear
 │       │   └── [id]/
-│       │       └── route.ts                # GET detalle + POST responder
-│       ├── messages/
-│       │   └── route.ts                    # Mensajes (CRUD)
+│       │       ├── route.ts          # GET detalle + POST responder
+│       │       └── cancel/route.ts   # POST cancelar
+│       ├── messages/route.ts         # GET bandeja + POST enviar
 │       ├── appointments/
-│       │   └── route.ts                    # Citas (CRUD)
+│       │   ├── route.ts              # GET listar + POST agendar
+│       │   └── [id]/
+│       │       ├── route.ts          # GET detalle
+│       │       ├── join/route.ts     # POST confirmar entrada
+│       │       └── cancel/route.ts   # POST cancelar
 │       └── payments/
-│           ├── route.ts                    # Iniciar pago
-│           └── webhook/route.ts           # Webhook CELO
-├── components/                            # Componentes React reutilizables
-│   ├── ui/                                # Design system
-│   │   ├── Button.tsx
-│   │   ├── Card.tsx
-│   │   ├── Input.tsx
-│   │   ├── Select.tsx
-│   │   ├── Modal.tsx
-│   │   ├── TopBar.tsx
-│   │   ├── Badge.tsx
-│   │   └── Toast.tsx
-│   ├── layout/
-│   │   ├── Navbar.tsx
-│   │   ├── Sidebar.tsx
-│   │   ├── MobileNav.tsx
-│   │   └── PhoneShell.tsx
-│   ├── auth/
-│   │   ├── LoginForm.tsx
-│   │   ├── RegisterForm.tsx
-│   │   └── RoleSelector.tsx
-│   ├── client/
-│   │   ├── RequestForm.tsx
-│   │   ├── RequestCard.tsx
-│   │   ├── ProfessionalCard.tsx
-│   │   └── ProfessionalSearch.tsx
-│   ├── professional/
-│   │   ├── AvailableRequests.tsx
-│   │   ├── RateEditor.tsx
-│   │   └── ProfessionalProfile.tsx
-│   ├── messages/
-│   │   ├── MessageList.tsx
-│   │   └── MessageThread.tsx
-│   ├── appointments/
-│   │   ├── CalendarView.tsx
-│   │   └── AppointmentCard.tsx
-│   ├── video/
-│   │   └── VideoCallRoom.tsx
-│   └── blockchain/
-│       ├── WalletConnect.tsx
-│       ├── PaymentButton.tsx
-│       └── TransactionHistory.tsx
-├── lib/                                   # Utilidades y lógica compartida
-│   ├── prisma.ts                          # Cliente Prisma singleton
-│   ├── auth.ts                            # Configuración NextAuth
-│   ├── validations.ts                     # Schemas Zod
-│   ├── constants.ts                       # Constantes del negocio
-│   ├── utils.ts                           # Funciones helper
-│   └── celo.ts                           # Utilidades CELO (conexión, formatos)
-├── prisma/                                # Schema y migraciones
-│   ├── schema.prisma                      # Modelo de datos completo
-│   └── seed.ts                            # Datos de prueba
-├── contracts/                             # Smart Contracts Solidity
-│   ├── contracts/
-│   │   ├── OrientaProfPayments.sol        # Contrato principal de pagos
-│   │   └── OrientaProfReputation.sol      # Contrato de reputación
-│   ├── scripts/
-│   │   ├── deploy.ts                      # Deploy a Celo
-│   │   └── interact.ts                    # Interacción con contrato
-│   ├── test/
-│   │   └── OrientaProfPayments.test.ts    # Tests del contrato
-│   ├── hardhat.config.ts                  # Config Hardhat
-│   └── .env.example                       # Variables de entorno
-├── hooks/                                 # Custom hooks React
-│   ├── useAuth.ts
-│   ├── useRequests.ts
-│   ├── useMessages.ts
-│   ├── useAppointments.ts
-│   ├── useWallet.ts
-│   └── usePayment.ts
-├── providers/                             # Context providers
-│   ├── AuthProvider.tsx
-│   ├── QueryProvider.tsx
-│   └── WalletProvider.tsx
-├── types/                                 # Tipos TypeScript compartidos
-│   ├── index.ts
-│   ├── user.ts
-│   ├── request.ts
-│   ├── message.ts
-│   ├── appointment.ts
-│   └── blockchain.ts
-├── public/                                # Activos estáticos
-│   └── assets/
-│       └── OrientaProf.png
-├── backend/                               # (Legacy) placeholder — migrar a /app/api
-├── frontend/                              # (Legacy) prototipo vanilla — migrar a /app
-├── styles/                                # Estilos globales
-│   └── globals.css                        # Tailwind directives + variables CSS
-├── .env.local                             # Variables de entorno (no versionar)
-├── .env.example                           # Template de variables
-├── tailwind.config.ts                     # Config Tailwind
-├── tsconfig.json                          # Config TypeScript
-├── next.config.ts                         # Config Next.js
-├── vercel.json                            # Config deploy Vercel
-├── package.json                           # Dependencias
-├── vitest.config.ts                       # Config Vitest
-├── playwright.config.ts                   # Config Playwright
-└── ARCHITECTURE_MCP.md                    # Este archivo
+│           ├── deposit/route.ts      # POST registrar depósito
+│           ├── release/route.ts      # POST liberar (profesional)
+│           ├── refund/route.ts       # POST reembolsar (cliente)
+│           └── transactions/route.ts # GET historial escrow
+├── components/
+│   ├── blockchain/WalletConnect.tsx  # WalletConnect (único componente extractado)
+│   └── (resto de UI va inline en las páginas)
+├── lib/
+│   ├── prisma.ts                     # Cliente Prisma singleton
+│   ├── auth.ts                       # Configuración NextAuth
+│   ├── auth.config.ts                # Auth config para edge/middleware
+│   ├── validations.ts                # Schemas Zod
+│   ├── constants.ts                  # Constantes del negocio
+│   ├── api-response.ts               # Helpers HTTP (success, error, etc.)
+│   ├── blockchain.ts                 # ethers v6 (callRelease, callRefund, getTransaction)
+│   ├── proposal-utils.ts             # Utilidades de propuestas
+│   └── utils.ts                      # Funciones helper
+├── contracts/
+│   └── OrientaProfPayments.sol       # Smart contract (copia en blockchain/)
+├── blockchain/                       # Hardhat subproject (CommonJS)
+│   ├── hardhat.config.cjs
+│   ├── package.json
+│   ├── contracts/OrientaProfPayments.sol
+│   └── scripts/
+│       ├── deploy.cjs                # Deploy a Sepolia/Mainnet
+│       ├── deploy-local.cjs          # Test local + validación
+│       ├── generate-wallet.cjs       # Generar wallet
+│       └── check-balance.cjs         # Verificar balance
+├── prisma/
+│   ├── schema.prisma                 # 11 modelos + 4 enums
+│   └── seed.ts                       # Datos de prueba
+├── types/                            # next-auth.d.ts
+├── public/assets/                    # OrientaProf.png
+├── middleware.ts                     # Protección de rutas por sesión
+├── backend/                          # (Legacy) prototipo vanilla
+├── frontend/                         # (Legacy) prototipo vanilla
+├── .env / .env.example
+├── eslint.config.mjs
+├── next.config.ts
+├── vercel.json
+├── tsconfig.json
+└── package.json
 ```
 
 ---
 
 ## Modelo de Datos (Prisma)
 
-```prisma
-enum Role {
-  CLIENT
-  PROFESSIONAL
-}
+El schema actual tiene **11 modelos** y **4 enums**. Resumen:
 
-enum RequestStatus {
-  PENDING
-  RESPONDED
-  CANCELLED
-  COMPLETED
-}
+| Modelo | Relaciones clave | Propósito |
+|--------|-----------------|-----------|
+| **User** | 1:1 → ProfessionalProfile, BankInfo; 1:N → Request, Appointment, Message | Cuenta unificada con walletAddress |
+| **ProfessionalProfile** | 1:1 ← User; 1:N → ProfessionalCategory | Perfil profesional (tarifa, rating, docs) |
+| **ProfessionalCategory** | N:1 ← ProfessionalProfile | Especialidades (ej: "Derecho laboral") |
+| **BankInfo** | 1:1 ← User | Info bancaria del profesional |
+| **Request** | N:1 ← User (client/professional); 1:N → Message, Appointment | Consulta del cliente |
+| **Message** | N:1 ← User, Request | Mensajes en hilo de consulta |
+| **Appointment** | N:1 ← User (client/professional); 1:1 → EscrowTransaction | Cita con `clientConfirmed`/`professionalConfirmed` |
+| **AttendanceConfirmation** | 1:1 ← Appointment | Confirmación de asistencia |
+| **PaymentTransaction** | 1:1 ← Appointment | Registro off-chain de pagos |
+| **EscrowTransaction** | 1:1 ← Appointment (unique), almacena `clientAddress`/`professionalAddress` como strings | Espejo del estado on-chain |
+| **AuditLog** | N:1 ← User (opcional) | Auditoría de acciones |
 
-enum AppointmentStatus {
-  SCHEDULED
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
-}
-
-model User {
-  id             String   @id @default(cuid())
-  username       String   @unique
-  email          String   @unique
-  passwordHash   String
-  role           Role     @default(CLIENT)
-  fullName       String
-  documentType   String?
-  documentNumber String?
-  gender         String?
-  country        String?
-  city           String?
-  dateOfBirth    DateTime?
-  address        String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  professionalProfile ProfessionalProfile?
-  sentMessages        Message[]        @relation("Sender")
-  receivedMessages    Message[]        @relation("Receiver")
-  clientRequests      Request[]        @relation("ClientRequests")
-  professionalRequests Request[]       @relation("ProfessionalRequests")
-  clientAppointments  Appointment[]    @relation("ClientAppointments")
-  professionalAppointments Appointment[] @relation("ProfessionalAppointments")
-}
-
-model ProfessionalProfile {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  user            User     @relation(fields: [userId], references: [id])
-  profession      String
-  ratePerMinute   Float    @default(1200) // COP
-  rating          Float    @default(0)
-  experienceYears Int?
-  description     String?
-  documentFile    String?  // URL
-  diplomaFile     String?  // URL
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  categories ProfessionalCategory[]
-}
-
-model ProfessionalCategory {
-  id             String   @id @default(cuid())
-  profileId      String
-  profile        ProfessionalProfile @relation(fields: [profileId], references: [id])
-  name           String
-}
-
-model Request {
-  id              String        @id @default(cuid())
-  clientId        String
-  client          User          @relation("ClientRequests", fields: [clientId], references: [id])
-  professionalId  String?
-  professional    User?         @relation("ProfessionalRequests", fields: [professionalId], references: [id])
-  category        String
-  title           String
-  description     String
-  status          RequestStatus @default(PENDING)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  messages Message[]
-}
-
-model Message {
-  id          String   @id @default(cuid())
-  requestId   String?
-  request     Request? @relation(fields: [requestId], references: [id])
-  senderId    String
-  sender      User     @relation("Sender", fields: [senderId], references: [id])
-  receiverId  String
-  receiver    User     @relation("Receiver", fields: [receiverId], references: [id])
-  content     String
-  read        Boolean  @default(false)
-  createdAt   DateTime @default(now())
-}
-
-model Appointment {
-  id                String            @id @default(cuid())
-  clientId          String
-  client            User              @relation("ClientAppointments", fields: [clientId], references: [id])
-  professionalId    String
-  professional      User              @relation("ProfessionalAppointments", fields: [professionalId], references: [id])
-  requestId         String?
-  scheduledAt       DateTime
-  durationMinutes   Int               @default(20)
-  status            AppointmentStatus @default(SCHEDULED)
-  videoRoomUrl      String?
-  transactionHash   String?           // Hash de la transacción CELO
-  totalCost         Float?            // Costo en cUSD
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-}
-
-model PaymentTransaction {
-  id              String   @id @default(cuid())
-  appointmentId   String?
-  appointment     Appointment? @relation(fields: [appointmentId], references: [id])
-  fromAddress     String   // Wallet del cliente
-  toAddress       String   // Wallet del profesional
-  amount          Float    // Monto en cUSD
-  token           String   @default("cUSD")
-  transactionHash String   @unique
-  blockNumber     Int?
-  status          String   @default("PENDING") // PENDING, CONFIRMED, FAILED
-  createdAt       DateTime @default(now())
-}
-```
+El schema completo está en `prisma/schema.prisma` y documentado en `DATABASE_SCHEMA.md`.
 
 ---
 
@@ -325,51 +149,38 @@ model PaymentTransaction {
 ┌──────────────────────────────────────────────────────────────────┐
 │                        Cliente (Browser)                         │
 │                                                                  │
-│  ┌──────────┐  ┌──────────┐  ┌────────────┐  ┌───────────────┐  │
-│  │ Next.js  │  │ Tailwind │  │   Zustand  │  │ TanStack      │  │
-│  │ (React)  │  │   CSS    │  │  (Estado)  │  │ Query (Cache) │  │
-│  └────┬─────┘  └──────────┘  └────────────┘  └───────┬───────┘  │
-│       │                                              │          │
-│  ┌────▼─────────────────────────────────────────────────▼────┐   │
-│  │                 RainbowKit + Wagmi + Viem                 │   │
-│  │              (Conexión Wallet → CELO)                     │   │
-│  └──────────────────────────┬───────────────────────────────┘   │
-└─────────────────────────────┼───────────────────────────────────┘
-                              │
-          ┌───────────────────┼───────────────────────┐
-          ▼                   ▼                       ▼
-┌─────────────────┐  ┌────────────────┐  ┌──────────────────────┐
-│ Next.js API     │  │  NextAuth.js   │  │  CELO Blockchain     │
-│ Routes (REST)   │  │  (JWT/Session) │  │                      │
-│                 │  │                │  │  ┌───────────────┐   │
-│  /api/auth/*    │  │  Login/Registro│  │  │OrientaProf    │   │
-│  /api/users/*   │  │  Protección    │  │  │Payments.sol   │   │
-│  /api/requests/*│  │  Middleware     │  │  │(Escrow cUSD)  │   │
-│  /api/messages/*│  │                │  │  └───────────────┘   │
-│  /api/payments/*│  │                │  │  ┌───────────────┐   │
-│                 │  │                │  │  │OrientaProf    │   │
-│                 │  │                │  │  │Reputation.sol │   │
-│                 │  │                │  │  │(Calificaciones)│   │
-└────────┬────────┘  └────────────────┘  └──────────┬───────────┘
-         │                                          │
-         ▼                                          │
-┌────────────────┐                                  │
-│    Prisma      │                                  │
-│    (ORM)       │                                  │
-└────────┬───────┘                                  │
-         │                                          │
-         ▼                                          │
-┌────────────────┐                                  │
-│  PostgreSQL    │                                  │
-│  (Datos app)   │                                  │
-└────────────────┘                                  │
-                                                    │
-         ┌──────────────────────────────────────────┘
+│  ┌──────────┐  ┌──────────┐  ┌──────────────────────────────┐   │
+│  │ Next.js  │  │ Tailwind │  │  fetch() / API Routes        │   │
+│  │ (React)  │  │   CSS    │  │  (sin TanStack Query)        │   │
+│  └────┬─────┘  └──────────┘  └──────────────┬───────────────┘   │
+│       │         WalletConnect (window.ethereum)                  │
+│       │          (Rabby / MetaMask → CELO)                      │
+└──────────────────────┬───────────────────────────────────────────┘
+                       │
+           ┌───────────┼────────────────────┐
+           ▼           ▼                    ▼
+┌─────────────────┐  ┌────────────┐  ┌──────────────────────────┐
+│ Next.js API     │  │ NextAuth   │  │  CELO Blockchain         │
+│ Routes (REST)   │  │ (JWT)      │  │  ┌──────────────────┐   │
+│                 │  │            │  │  │OrientaProf       │   │
+│  /api/auth/*    │  │ Login      │  │  │Payments.sol      │   │
+│  /api/user/*    │  │ Registro   │  │  │(Escrow CELO)     │   │
+│  /api/requests/*│  │ Sesión     │  │  │deposit/release   │   │
+│  /api/messages/*│  │ Middleware  │  │  │refund/withdraw   │   │
+│  /api/payments/*│  │            │  │  └──────────────────┘   │
+│  /api/...       │  │            │  │  deploy: 0x25eC8E...   │
+└────────┬────────┘  └────────────┘  └──────────────────────────┘
+         │
          ▼
 ┌────────────────┐
-│  Jitsi Meet    │
-│  (Videollamada)│
-└────────────────┘
+│    Prisma      │
+│    (ORM)       │
+└────────┬───────┘
+         ▼
+┌────────────────┐          ┌────────────────┐
+│  PostgreSQL    │          │  Jitsi Meet    │
+│  (Datos app)   │          │  (Videollamada)│
+└────────────────┘          └────────────────┘
 ```
 
 ---
@@ -379,77 +190,93 @@ model PaymentTransaction {
 ```
 1. REGISTRO
    Usuario → Formulario → /api/auth/register → Prisma → PostgreSQL
-                                                    ↕
-                                            NextAuth crea sesión JWT
+   (si PROFESSIONAL: también crea ProfessionalProfile + Categories + BankInfo)
 
 2. PUBLICAR CONSULTA (Cliente)
-   Cliente → RequestForm → /api/requests (POST) → Prisma → PostgreSQL
-                                                    ↕
-                                            TanStack Query actualiza caché
+   Cliente → Formulario inline → POST /api/requests → Request { status: PENDING }
 
 3. RESPONDER CONSULTA (Profesional)
-   Profesional → AvailableRequests → /api/requests/[id]/respond (POST)
-       → Prisma actualiza Request.status = "RESPONDED"
-       → Crea Message en DB
+   Profesional → Dashboard ve PENDING → /dashboard/professional/respond/[id]
+   → POST /api/requests/:id → Request { status: RESPONDED, professionalId }
+   → INSERT Message (primera respuesta)
 
 4. ACEPTAR Y AGENDAR (Cliente)
-   Cliente → Message → Button "Agendar" → /api/appointments (POST)
-       → Prisma crea Appointment
-       → Genera sala Jitsi Meet
-       → Retorna URL de videollamada
+   Cliente → /messages → ve respuesta → agenda cita
+   → POST /api/appointments → Appointment { status: SCHEDULED, totalCost }
 
 5. PAGO (Blockchain CELO)
-   Antes de la llamada:
-   ┌─ Wallet Cliente ─┐         ┌─ Smart Contract ─┐       ┌─ Wallet Profesional ─┐
-   │ Aprueba cUSD     │ ──────→ │ Escrow: retiene   │ ──→  │ Recibe al finalizar  │
-   │ Firma transacción│         │ tokens            │       │                      │
-   └──────────────────┘         └───────────────────┘       └──────────────────────┘
+   Antes de la videollamada:
+   ┌─ Wallet Cliente ─┐       ┌─ Smart Contract ─┐
+   │ Deposita CELO    │ ───→  │ Escrow: retiene  │
+   │ via msg.value    │       │ PENDIENTE        │
+   └──────────────────┘       └──────┬───────────┘
                                      │
-                            Al completar videollamada:
-                            SmartContract.releasePayment()
-                            (emitido por backend webhook)
+   POST /api/payments/deposit        │
+   → Crea EscrowTransaction          │
+     { status: PENDIENTE }          │
 
 6. VIDEOLLAMADA
-   Ambos → /consultation/[id] → Jitsi Meet embebido
-       → Al finalizar → webhook → libera pago del escrow
+   Ambos → /appointments/[id]/room → Jitsi Meet iframe
+   → Cada uno llama POST /api/appointments/:id/join
+   → clientConfirmed/professionalConfirmed = true
+   → Cuando ambos confirman → Appointment { status: COMPLETED }
 
-7. CALIFICACIÓN (On-chain)
-   Cliente califica → OrientaProfReputation.rateProfessional()
-       → Score registrado en blockchain (inmutable)
-       → Prisma sincroniza rating en ProfessionalProfile
+7. LIBERACIÓN / REEMBOLSO
+   Si videollamada completada:
+   → Profesional llama POST /api/payments/release
+     → Backend llama contract.release(transactionIndex)
+     → EscrowTransaction { status: LIBERADA }
+
+   Si hay controversia:
+   → Cliente llama POST /api/payments/refund
+     → Backend llama contract.refund(transactionIndex)
+     → EscrowTransaction { status: REEMBOLSADA }
+     → Cliente recibe amount - 5% (gas fee)
 ```
 
 ---
 
-## Smart Contracts (CELO)
+## Smart Contract — OrientaProfPayments.sol
 
-### OrientaProfPayments.sol
-
-```
-Funciones principales:
-├── createConsultation(client, professional, ratePerMin, durationMin)
-│   → Crea escrow, cliente deposita cUSD (rate × duration)
-│   → Emite evento ConsultationCreated
-├── startConsultation(consultationId)
-│   → Solo llamado por backend cuando comienza la videollamada
-├── completeConsultation(consultationId)
-│   → Libera fondos al profesional
-│   → Emite evento ConsultationCompleted
-├── cancelConsultation(consultationId)
-│   → Reembolsa al cliente (menos comisión)
-│   → Emite evento ConsultationCancelled
-└── withdrawFunds()
-    → Retiro de comisiones de la plataforma
-```
-
-### OrientaProfReputation.sol
+### Funciones del contrato (desplegado en Celo Sepolia)
 
 ```
 Funciones principales:
-├── rateProfessional(professional, score)    // 1-5
-├── getRating(professional) → (average, count)
-└── getProfessionalHistory(professional) → Rating[]
+├── deposit(string _consultationId, address _professionalWallet) external payable
+│   → Cliente envía CELO via msg.value
+│   → Crea Transaction { PENDIENTE }
+│   → Emite TransactionCreated
+├── release(uint256 _transactionIndex) external onlyBackend validTransaction
+│   → Libera fondos: Transaction.status → LIBERADA
+│   → (profesional puede llamar withdraw para retirar)
+├── refund(uint256 _transactionIndex) external onlyBackend validTransaction
+│   → Reembolsa al cliente: Transaction.status → REEMBOLSADA
+│   → Envía amount - gasFee (5%) al cliente
+│   → Envía gasFee a platformWallet
+├── withdraw(uint256 _transactionIndex) external validTransaction
+│   → Profesional retira fondos LIBERADOS a su wallet
+│   → Transaction.status → REEMBOLSADA (reusado como "retirado")
+├── setPlatformWallet / setAuthorizedBackend / setGasFeeBps
+│   → Solo owner (OpenZeppelin Ownable)
+└── getTransaction / getTransactionsByClient / getTransactionsByProfessional
+    → View functions
 ```
+
+### Detalles de despliegue
+
+| Parámetro | Valor |
+|-----------|-------|
+| **Red** | Celo Sepolia (chainId: 11142220) |
+| **Dirección** | `0x25eC8EC72aBDB67b9C24E5838B0063AeB264a54b` |
+| **Deployer/Owner** | `0xBa68cc2e8858BdaA452d4a7f04cfcD9799958095` |
+| **Gas fee** | 5% (500 bps) |
+| **Token** | CELO nativo (no cUSD) |
+
+### Integración con el backend
+
+- **WalletConnect** (frontend): firma `deposit()` del cliente via `window.ethereum`
+- **`lib/blockchain.ts`** (backend): ethers v6, llama `release()` y `refund()` usando JsonRpcProvider + Wallet signer
+- **API Routes**: sincronizan estado off-chain con el contrato
 
 ---
 
@@ -457,49 +284,62 @@ Funciones principales:
 
 | Aspecto | Implementación |
 |---------|---------------|
-| **Auth** | NextAuth.js con JWT, httpOnly cookies, CSRF protection |
-| **Passwords** | bcrypt (salt rounds = 12) |
-| **API** | Rate limiting, validación Zod, middleware de rol |
-| **Blockchain** | Smart contract auditado, escrow con multisig de emergencia |
-| **Video** | Salas Jitsi con token JWT, sin persistencia de video |
+| **Auth** | NextAuth.js con JWT, httpOnly cookies |
+| **Passwords** | bcrypt |
+| **API** | Validación Zod, middleware de rol y ownership |
+| **Blockchain** | OpenZeppelin Ownable, solo backend autorizado para release/refund, patrón checks-effects-interactions |
+| **Video** | Sala Jitsi pública sin autenticación (MVP) |
 | **Datos** | Prisma prepared statements, SQL injection prevenido |
-| **CORS** | Restringido a dominio Vercel en producción |
-| **HTTPS** | Forzado en Vercel + CELO mainnet |
+| **HTTPS** | Forzado en producción |
 
 ---
 
-## Plan de Migración del Prototipo Actual
+## API Routes (Resumen)
 
-### Fase 1 — Infraestructura (Sprint 1)
-- Inicializar Next.js + TypeScript + Tailwind + Prisma
-- Configurar base de datos PostgreSQL
-- Migrar diseño visual (paleta de colores, mobile-first)
+| Método | Ruta | Autenticación | Propósito |
+|--------|------|--------------|-----------|
+| POST | `/api/auth/register` | — | Registro dual-rol |
+| POST | `/api/auth/login` | — | Inicio de sesión (NextAuth) |
+| GET | `/api/auth/session` | Sesión | Sesión actual |
+| POST | `/api/auth/logout` | Sesión | Cerrar sesión |
+| GET | `/api/user/profile` | Sesión | Perfil propio |
+| PATCH | `/api/user/wallet` | Sesión | Actualizar wallet CELO |
+| GET | `/api/professionals` | — | Listar profesionales activos |
+| POST | `/api/requests` | CLIENT | Crear consulta |
+| GET | `/api/requests` | Ambos | Listar consultas |
+| GET | `/api/requests/:id` | Ambos | Detalle consulta |
+| POST | `/api/requests/:id` | PROFESSIONAL | Responder consulta |
+| POST | `/api/requests/:id/cancel` | CLIENT | Cancelar consulta |
+| GET | `/api/messages` | Cualquiera | Bandeja de mensajes |
+| POST | `/api/messages` | Cualquiera | Enviar mensaje |
+| POST | `/api/appointments` | Ambos | Agendar cita |
+| GET | `/api/appointments` | Cualquiera | Listar citas |
+| GET | `/api/appointments/:id` | Cualquiera | Detalle cita |
+| POST | `/api/appointments/:id/join` | Ambos | Confirmar entrada |
+| POST | `/api/appointments/:id/cancel` | Ambos | Cancelar cita |
+| POST | `/api/payments/deposit` | CLIENT | Registrar depósito escrow |
+| POST | `/api/payments/release` | PROFESSIONAL | Liberar fondos |
+| POST | `/api/payments/refund` | CLIENT | Reembolsar fondos |
+| GET | `/api/payments/transactions` | Cualquiera | Historial escrow |
 
-### Fase 2 — Backend + Auth (Sprint 1-2)
-- Implementar API REST completa
-- NextAuth con login/registro real
-- Protección de rutas por rol
+---
 
-### Fase 3 — Frontend React (Sprint 2-3)
-- Migrar 14 pantallas a componentes React con App Router
-- Estado global con Zustand
-- Formularios con React Hook Form + Zod
+## Estado del Proyecto
 
-### Fase 4 — Funcionalidades Core (Sprint 3-4)
-- Dashboard cliente y profesional
-- CRUD de consultas, mensajes, citas
-- Búsqueda y filtros de profesionales
+| Área | Estado |
+|------|--------|
+| Fundación (Next.js + TypeScript + Tailwind + Prisma) | ✅ 10/11 |
+| Backend API | ✅ 10/10 |
+| Auth y Layout | ✅ 5/5 |
+| Dashboards | ✅ 5/5 |
+| Citas y Videollamadas | ✅ 3/3 |
+| Blockchain CELO | ✅ 5/5 |
+| Settings | ❌ 0/5 |
+| UX | ⚠️ 2/8 |
+| Testing | ❌ 0/7 |
+| Deploy y Docs | ⚠️ 1/8 |
 
-### Fase 5 — Blockchain CELO (Sprint 4-5)
-- Smart contracts (escrow en cUSD, reputación)
-- RainbowKit + Wagmi para wallets
-- Integración pago por minuto de videollamada
-
-### Fase 6 — Testing + Deploy (Sprint 5)
-- Tests unitarios e integración
-- Deploy a Celo Alfajores (testnet)
-- Deploy a Vercel + Railway
-- Documentación final
+**Total**: 41/67 tareas completas. Detalle en `TODO_MVP.md`.
 
 ---
 
@@ -510,23 +350,19 @@ Funciones principales:
 DATABASE_URL="postgresql://..."
 
 # NextAuth
-NEXTAUTH_URL="https://..."
+NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="..."
 
-# Jitsi Meet
-JITSI_DOMAIN="meet.jit.si"
-JITSI_APP_ID="..."
-JITSI_APP_SECRET="..."
+# Jitsi Meet (público)
+NEXT_PUBLIC_JITSI_DOMAIN="meet.jit.si"
 
-# CELO Blockchain
-CELO_RPC_URL="https://alfajores-forno.celo-testnet.org"
-CELO_PRIVATE_KEY="..."
-CELO_PAYMENTS_CONTRACT_ADDRESS="0x..."
-CELO_REPUTATION_CONTRACT_ADDRESS="0x..."
+# CELO Blockchain (Sepolia testnet)
+CELO_RPC_URL="https://forno.celo-sepolia.celo-testnet.org"
+CELO_PRIVATE_KEY="0x..."
+CELO_PAYMENTS_CONTRACT_ADDRESS="0x25eC8EC72aBDB67b9C24E5838B0063AeB264a54b"
 
-# Wallet Connect
-NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID="..."
-
-# Vercel
-VERCEL_ENV="production|preview|development"
+# Next.js public envs (cliente)
+NEXT_PUBLIC_CELO_PAYMENTS_CONTRACT_ADDRESS="0x25eC8EC72aBDB67b9C24E5838B0063AeB264a54b"
+NEXT_PUBLIC_CELO_RPC_URL="https://forno.celo-sepolia.celo-testnet.org"
+NEXT_PUBLIC_CELO_CHAIN_ID="11142220"
 ```

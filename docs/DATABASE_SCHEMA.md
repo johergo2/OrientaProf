@@ -1,7 +1,7 @@
 # DATABASE_SCHEMA — OrientaProf MVP
 
 > Documento de especificación del esquema de base de datos para el MVP.
-> **Motor**: PostgreSQL v15+ vía Prisma ORM.
+> **Motor**: PostgreSQL v15+ vía Prisma ORM v5.
 > **Convención**: `snake_case` para columnas en DB, `camelCase` en modelos Prisma.
 
 ---
@@ -9,45 +9,43 @@
 ## 1. Diagrama de Relaciones
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│                              User                                    │
-│  (Registro unificado: clientes y profesionales)                      │
-└───────┬──────────────────────┬───────────────────────┬───────────────┘
-        │ 1                    │ 1                     │ 1
-        ▼                      ▼                       ▼
-┌───────────────┐   ┌──────────────────┐   ┌──────────────────┐
-│Professional   │   │   BankInfo       │   │  WalletCELO      │
-│Profile        │   │  (Info pago)     │   │  (campo en User) │
-│(solo prof)    │   │  (solo prof)     │   │                  │
-└───────┬───────┘   └──────────────────┘   └──────────────────┘
+                         User
+  (Registro unificado: clientes y profesionales)
+       │ 1           │ 1              │ 1
+       ▼             ▼                ▼
+ ┌────────────┐ ┌──────────┐  ┌──────────────┐
+ │Professional│ │ BankInfo │  │ AuditLog     │
+ │Profile     │ │(solo prof)│  │(auditoría)   │
+ │(solo prof) │ └──────────┘  └──────────────┘
+ └──────┬─────┘
         │ 1
         ▼
-┌──────────────────┐        ┌──────────────────┐
-│Professional      │        │   Request        │
-│Category          │        │  (Consultas)     │
-│(1-N por perfil)  │        └───────┬──────────┘
-└──────────────────┘                │ 1
-                                    ▼
-                           ┌──────────────────┐
-                           │    Message       │
-                           │  (Mensajes/resp)│
-                           └──────────────────┘
+ ┌──────────────┐        ┌───────────┐
+ │Professional  │        │  Request  │
+ │Category      │        │(Consultas)│
+ │(1-N por perf)│        └─────┬─────┘
+ └──────────────┘              │ 1
+                               ▼
+                        ┌───────────┐
+                        │  Message  │
+                        │(Mensajes) │
+                        └───────────┘
 
-┌──────────────────┐
-│   Appointment    │
-│  (Citas/Video)   ├─── 1 ─── Request (opcional)
-└───────┬──────────┘
+ ┌──────────────┐
+ │  Appointment  │──1── Request (opcional)
+ │ (Citas/Video) │
+ └──────┬───────┘
         │ 1
         ▼
-┌──────────────────┐
-│PaymentTransaction│
-│  (Registro pago) │
-└──────────────────┘
+ ┌──────────────────┐
+ │EscrowTransaction │
+ │(Espejo on-chain) │
+ └──────────────────┘
 
-┌──────────────────┐
-│EscrowTransaction │
-│(Espejo on-chain) │
-└──────────────────┘
+ ┌──────────────────┐
+ │PaymentTransaction│
+ │(Registro pago)   │
+ └──────────────────┘
 ```
 
 ---
@@ -57,8 +55,8 @@
 ### `Role`
 ```prisma
 enum Role {
-  CLIENT        // Usuario normal que busca orientación
-  PROFESSIONAL  // Profesional que brinda asesoría
+  CLIENT
+  PROFESSIONAL
 }
 ```
 
@@ -75,30 +73,23 @@ enum RequestStatus {
 ### `AppointmentStatus`
 ```prisma
 enum AppointmentStatus {
-  SCHEDULED         // Agendada, esperando confirmación de asistencia
-  CONFIRMED_CLIENT  // Cliente confirmó asistencia
-  CONFIRMED_BOTH    // Ambos confirmaron asistencia
+  SCHEDULED         // Agendada
+  CONFIRMED_CLIENT  // Cliente confirmó entrada (vía join)
+  CONFIRMED_BOTH    // Ambos confirmaron
   IN_PROGRESS       // Videollamada en curso
-  COMPLETED         // Videollamada finalizada exitosamente
-  CANCELLED         // Cancelada por alguna de las partes
-  MISSED            // Inasistencia (no se presentó alguna parte)
+  COMPLETED         // Finalizada exitosamente (join de ambos)
+  CANCELLED         // Cancelada por alguna parte
 }
 ```
 
-### `TransactionStatus` (espejo del contrato)
+**Nota MVP**: El status se maneja simplificado: join de ambos → COMPLETED directamente (no se usan estados intermedios CONFIRMED_CLIENT/CONFIRMED_BOTH/IN_PROGRESS en la práctica).
+
+### `EscrowStatus` (espejo del contrato)
 ```prisma
-enum TransactionStatus {
+enum EscrowStatus {
   PENDIENTE     // Fondos bloqueados en escrow
   LIBERADA      // Fondos disponibles para retiro del profesional
   REEMBOLSADA   // Fondos devueltos al usuario
-}
-```
-
-### `ConfirmationParty`
-```prisma
-enum ConfirmationParty {
-  CLIENT
-  PROFESSIONAL
 }
 ```
 
@@ -108,7 +99,7 @@ enum ConfirmationParty {
 
 ### 3.1. `User`
 
-Cuenta unificada para clientes y profesionales. Un profesional también puede actuar como cliente.
+Cuenta unificada para clientes y profesionales.
 
 ```prisma
 model User {
@@ -118,33 +109,30 @@ model User {
   passwordHash    String
   role            Role      @default(CLIENT)
   fullName        String
-  documentType    String?   // CC, CE, Pasaporte, TI
+  documentType    String?
   documentNumber  String?
   gender          String?
   country         String?
   city            String?
   dateOfBirth     DateTime?
   address         String?
-  walletAddress   String?   // Wallet pública CELO (0x...)
-  emailVerified   Boolean   @default(false)
-  isActive        Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  walletAddress   String?        // Wallet pública CELO (0x...)
+  emailVerified   DateTime?      // Timestamp de verificación (null = no verificado)
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
-  // Relaciones
-  professionalProfile         ProfessionalProfile?
-  bankInfo                    BankInfo?
-  sentMessages                Message[]              @relation("Sender")
-  receivedMessages            Message[]              @relation("Receiver")
-  clientRequests              Request[]              @relation("ClientRequests")
-  professionalRequests        Request[]              @relation("ProfessionalRequests")
-  clientAppointments          Appointment[]          @relation("ClientAppointments")
-  professionalAppointments    Appointment[]          @relation("ProfessionalAppointments")
-  attendanceConfirmations     AttendanceConfirmation[]
-  paymentTransactionsSent     PaymentTransaction[]   @relation("Payer")
-  paymentTransactionsReceived PaymentTransaction[]   @relation("Payee")
-  escrowTransactionsAsClient  EscrowTransaction[]    @relation("EscrowClient")
-  escrowTransactionsAsProf    EscrowTransaction[]    @relation("EscrowProfessional")
+  professionalProfile          ProfessionalProfile?
+  bankInfo                     BankInfo?
+  sentMessages                 Message[]              @relation("Sender")
+  receivedMessages             Message[]              @relation("Receiver")
+  clientRequests               Request[]              @relation("ClientRequests")
+  professionalRequests         Request[]              @relation("ProfessionalRequests")
+  clientAppointments           Appointment[]          @relation("ClientAppointments")
+  professionalAppointments     Appointment[]          @relation("ProfessionalAppointments")
+  paymentTransactionsSent      PaymentTransaction[]   @relation("SenderTransactions")
+  paymentTransactionsReceived  PaymentTransaction[]   @relation("ReceiverTransactions")
+  auditLogs                    AuditLog[]
 }
 ```
 
@@ -156,15 +144,8 @@ model User {
 | `passwordHash` | String | Hash bcrypt de la contraseña |
 | `role` | Role | CLIENT o PROFESSIONAL |
 | `fullName` | String | Nombres y apellidos completos |
-| `documentType` | String? | Tipo de documento de identidad |
-| `documentNumber` | String? | Número de documento |
-| `gender` | String? | Género |
-| `country` | String? | País de residencia |
-| `city` | String? | Ciudad de residencia |
-| `dateOfBirth` | DateTime? | Fecha de nacimiento |
-| `address` | String? | Dirección de residencia |
 | `walletAddress` | String? | Dirección pública de wallet CELO (0x...) |
-| `emailVerified` | Boolean | Indica si el email fue verificado |
+| `emailVerified` | DateTime? | Fecha de verificación de email (null = pendiente) |
 | `isActive` | Boolean | Baja lógica del usuario |
 
 ### 3.2. `ProfessionalProfile`
@@ -175,14 +156,15 @@ Perfil profesional extendido. Solo existe si `User.role = PROFESSIONAL`.
 model ProfessionalProfile {
   id              String   @id @default(cuid())
   userId          String   @unique
-  user            User     @relation(fields: [userId], references: [id])
-  profession      String   // Abogado, Médico, Contador, etc.
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profession      String        // Abogado, Médico, Contador, etc.
   ratePerMinute   Float    @default(1200)  // COP (750-1500)
   rating          Float    @default(0)     // Promedio 1-5
+  ratingCount     Int      @default(0)     // Número de calificaciones
   experienceYears Int?
   description     String?
-  documentFile    String?  // URL del documento de identidad
-  diplomaFile     String?  // URL del diploma o acta de grado
+  documentFile    String?       // URL del documento de identidad
+  diplomaFile     String?       // URL del diploma o acta de grado
   isVerified      Boolean  @default(false) // Verificación admin
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -191,35 +173,20 @@ model ProfessionalProfile {
 }
 ```
 
-| Campo | Descripción |
-|-------|-------------|
-| `profession` | Profesión o área de conocimiento |
-| `ratePerMinute` | Tarifa por minuto en COP (750-1500) |
-| `rating` | Calificación promedio (0 = aún sin calificar) |
-| `experienceYears` | Años de experiencia profesional |
-| `description` | Descripción del perfil / servicios |
-| `documentFile` | URL del archivo de identificación |
-| `diplomaFile` | URL del diploma o acta de grado |
-| `isVerified` | Marca de verificación por administrador |
-
 ### 3.3. `ProfessionalCategory`
 
-Categorías o áreas de especialización de un profesional (relación 1-N).
+Categorías o áreas de especialización (relación 1-N).
 
 ```prisma
 model ProfessionalCategory {
   id        String             @id @default(cuid())
   profileId String
-  profile   ProfessionalProfile @relation(fields: [profileId], references: [id])
-  name      String             // Ej: "Derecho laboral", "Contabilidad tributaria"
+  profile   ProfessionalProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  name      String
 
-  @@unique([profileId, name])  // Evita duplicados por perfil
+  @@unique([profileId, name])
 }
 ```
-
-| Campo | Descripción |
-|-------|-------------|
-| `name` | Nombre de la categoría/especialidad |
 
 ### 3.4. `BankInfo`
 
@@ -229,7 +196,7 @@ Información bancaria del profesional para retiros fiduciarios (off-ramp).
 model BankInfo {
   id            String   @id @default(cuid())
   userId        String   @unique
-  user          User     @relation(fields: [userId], references: [id])
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   country       String   @default("Colombia")
   bankName      String
   accountType   String   // Ahorros / Corriente
@@ -248,33 +215,25 @@ Consulta publicada por un cliente.
 model Request {
   id              String        @id @default(cuid())
   clientId        String
-  client          User          @relation("ClientRequests", fields: [clientId], references: [id])
-  professionalId  String?       // Profesional seleccionado (se llena al responder/aceptar)
+  client          User          @relation("ClientRequests", fields: [clientId], references: [id], onDelete: Cascade)
+  professionalId  String?
   professional    User?         @relation("ProfessionalRequests", fields: [professionalId], references: [id])
-  category        String        // Categoría de la consulta
-  title           String        // Título corto
-  description     String        // Descripción detallada
+  category        String
+  title           String
+  description     String
   status          RequestStatus @default(PENDING)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  messages  Message[]
+  messages    Message[]
   appointments Appointment[]
 }
 ```
 
-| Campo | Descripción |
-|-------|-------------|
-| `category` | Categoría (tributaria, laboral, médica, legal, emprendimiento) |
-| `title` | Título de la consulta |
-| `description` | Descripción detallada del problema |
-| `status` | PENDING → RESPONDED → COMPLETED / CANCELLED |
-
 **Reglas de negocio**:
-- Solo el `client` puede crear, editar o cancelar una consulta (si está PENDING)
-- Cualquier profesional puede ver las consultas PENDING
+- Solo el `client` puede crear consultas
 - Un profesional responde creando un Message vinculado al Request
-- Al responder, el Request.status cambia a RESPONDED y se asigna `professionalId`
+- Al responder, Request.status cambia a RESPONDED y se asigna `professionalId`
 
 ### 3.6. `Message`
 
@@ -284,7 +243,7 @@ Mensajes dentro del hilo de una consulta.
 model Message {
   id          String   @id @default(cuid())
   requestId   String?
-  request     Request? @relation(fields: [requestId], references: [id])
+  request     Request? @relation(fields: [requestId], references: [id], onDelete: Cascade)
   senderId    String
   sender      User     @relation("Sender", fields: [senderId], references: [id])
   receiverId  String
@@ -292,202 +251,159 @@ model Message {
   content     String
   read        Boolean  @default(false)
   createdAt   DateTime @default(now())
-
-  // Para mensajes directos (sin request asociado)
-  // O para respuestas a consultas
 }
 ```
-
-| Campo | Descripción |
-|-------|-------------|
-| `requestId` | Consulta asociada (null si es mensaje directo) |
-| `senderId` | Quién envía el mensaje |
-| `receiverId` | Quién recibe el mensaje |
-| `content` | Contenido del mensaje |
-| `read` | Indica si fue leído |
 
 **Reglas de negocio**:
 - El primer mensaje de un profesional a un Request constituye su "respuesta"
 - Al crear el primer mensaje de profesional → Request.status = RESPONDED
-- El mensaje puede existir sin Request (mensajería directa)
 
 ### 3.7. `Appointment`
 
-Cita agendada para videollamada entre cliente y profesional.
+Cita agendada para videollamada.
 
 ```prisma
 model Appointment {
-  id                String            @id @default(cuid())
-  clientId          String
-  client            User              @relation("ClientAppointments", fields: [clientId], references: [id])
-  professionalId    String
-  professional      User              @relation("ProfessionalAppointments", fields: [professionalId], references: [id])
-  requestId         String?           // Consulta origen (opcional)
-  request           Request?          @relation(fields: [requestId], references: [id])
-  scheduledAt       DateTime          // Fecha y hora agendada
-  durationMinutes   Int               @default(20)  // 10, 15, 20, 30
-  status            AppointmentStatus @default(SCHEDULED)
-  videoRoomUrl      String?           // URL de sala Jitsi Meet
-  videoRoomToken    String?           // Token JWT para la sala
-  totalCost         Float?            // Costo calculado en CELO (antes del pago)
-  notes             String?           // Notas adicionales
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  id                    String            @id @default(cuid())
+  clientId              String
+  client                User              @relation("ClientAppointments", fields: [clientId], references: [id], onDelete: Cascade)
+  professionalId        String
+  professional          User              @relation("ProfessionalAppointments", fields: [professionalId], references: [id])
+  requestId             String?
+  request               Request?          @relation(fields: [requestId], references: [id])
+  scheduledAt           DateTime
+  durationMinutes       Int               @default(20)  // 10, 15, 20, 30
+  status                AppointmentStatus @default(SCHEDULED)
+  videoRoomUrl          String?
+  transactionHash       String?
+  totalCost             Float?
+  clientConfirmed       Boolean           @default(false)
+  professionalConfirmed Boolean           @default(false)
+  startedAt             DateTime?
+  completedAt           DateTime?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
 
-  // Relaciones
-  attendances       AttendanceConfirmation[]
-  paymentTransaction PaymentTransaction?
-  escrowTransaction  EscrowTransaction?
+  attendanceConfirmation AttendanceConfirmation?
+  paymentTransaction      PaymentTransaction?
+  escrowTransaction       EscrowTransaction?
 }
 ```
 
 | Campo | Descripción |
 |-------|-------------|
-| `scheduledAt` | Fecha y hora programada para la videollamada |
+| `scheduledAt` | Fecha y hora programada |
 | `durationMinutes` | Duración en minutos (10, 15, 20, 30) |
-| `status` | SCHEDULED → CONFIRMED_CLIENT → CONFIRMED_BOTH → IN_PROGRESS → COMPLETED / CANCELLED / MISSED |
-| `videoRoomUrl` | URL generada de la sala Jitsi Meet |
-| `videoRoomToken` | Token JWT de autenticación para la sala |
-| `totalCost` | Costo total calculado (ratePerMinute × durationMinutes) |
+| `status` | SCHEDULED → COMPLETED / CANCELLED (simplificado en MVP) |
+| `clientConfirmed` | true si el cliente llamó a POST /join |
+| `professionalConfirmed` | true si el profesional llamó a POST /join |
+| `totalCost` | Costo calculado (ratePerMinute × durationMinutes) |
 
-**Máquina de estados de Appointment**:
+**Flujo de estados (MVP real)**:
 ```
 SCHEDULED
   │
-  ├── (cliente confirma) → CONFIRMED_CLIENT
-  │                           │
-  │                           ├── (profesional confirma) → CONFIRMED_BOTH
-  │                                                         │
-  │                                                         ├── (inicia videollamada) → IN_PROGRESS
-  │                                                         │                            │
-  │                                                         │                            ├── (finaliza bien) → COMPLETED
-  │                                                         │                            └── (abandona) → MISSED
-  │                                                         │
-  │                                                         ├── (alguien cancela) → CANCELLED
-  │                                                         └── (no se presenta) → MISSED
+  ├── (cliente llama /join) → clientConfirmed = true
+  │                              │
+  │                              └── (profesional llama /join) → ambos true → COMPLETED
   │
-  ├── (profesional confirma) → CONFIRMED_CLIENT (mismo estado, se distingue por AttendanceConfirmation)
+  ├── (profesional llama /join) → professionalConfirmed = true
+  │                                │
+  │                                └── (cliente llama /join) → ambos true → COMPLETED
   │
-  ├── (alguien cancela) → CANCELLED
-  │
-  └── (no se presenta fecha) → MISSED
+  └── (POST /cancel) → CANCELLED
 ```
 
 ### 3.8. `AttendanceConfirmation`
 
-Registro de confirmación de asistencia a una cita (auditoría).
+Registro de confirmación de asistencia (relación 1:1 con Appointment).
 
 ```prisma
 model AttendanceConfirmation {
-  id              String             @id @default(cuid())
-  appointmentId   String
-  appointment     Appointment        @relation(fields: [appointmentId], references: [id])
-  userId          String
-  user            User               @relation(fields: [userId], references: [id])
-  party           ConfirmationParty  // CLIENT o PROFESSIONAL
-  confirmed       Boolean            @default(false)
-  confirmedAt     DateTime?
-  createdAt       DateTime           @default(now())
-
-  @@unique([appointmentId, userId])  // Un registro por usuario por cita
+  id               String    @id @default(cuid())
+  appointmentId    String    @unique
+  appointment      Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  clientConfirmed  Boolean   @default(false)
+  proConfirmed     Boolean   @default(false)
+  clientConfirmedAt DateTime?
+  proConfirmedAt   DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 }
 ```
-
-| Campo | Descripción |
-|-------|-------------|
-| `party` | Indica si la confirmación es del cliente o del profesional |
-| `confirmed` | true si confirmó asistencia |
-| `confirmedAt` | Timestamp de la confirmación |
-
-**Reglas de negocio**:
-- Ambos deben confirmar para que Appointment pase a CONFIRMED_BOTH
-- Si alguien no confirma dentro del tiempo límite, la cita pasa a MISSED
-- La confirmación puede tener un límite de tiempo (ej: 30 min antes de la cita)
 
 ### 3.9. `PaymentTransaction`
 
-Registro off-chain de transacciones de pago en CELO.
+Registro off-chain de transacciones de pago.
 
 ```prisma
 model PaymentTransaction {
-  id              String             @id @default(cuid())
-  appointmentId   String             @unique
-  appointment     Appointment        @relation(fields: [appointmentId], references: [id])
-  payerId         String
-  payer           User               @relation("Payer", fields: [payerId], references: [id])
-  payeeId         String
-  payee           User               @relation("Payee", fields: [payeeId], references: [id])
-  amount          Float              // Monto en CELO (decimal)
-  token           String             @default("CELO")
-  transactionHash String?            @unique  // Hash de la tx on-chain (null antes del depósito)
-  blockNumber     Int?
-  status          String             @default("PENDING") // PENDING, CONFIRMED, FAILED
-  description     String?            // "Depósito escrow", "Liberación", "Reembolso"
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  id              String       @id @default(cuid())
+  appointmentId   String?      @unique
+  appointment     Appointment? @relation(fields: [appointmentId], references: [id])
+  fromUserId      String
+  fromUser        User         @relation("SenderTransactions", fields: [fromUserId], references: [id])
+  toUserId        String
+  toUser          User         @relation("ReceiverTransactions", fields: [toUserId], references: [id])
+  amount          Float
+  currency        String       @default("COP")
+  method          String       @default("CELO")
+  transactionHash String?
+  status          String       @default("PENDING") // PENDING, CONFIRMED, FAILED
+  description     String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 }
 ```
-
-| Campo | Descripción |
-|-------|-------------|
-| `payerId` | Usuario que paga (cliente) |
-| `payeeId` | Usuario que recibe (profesional) |
-| `amount` | Monto en CELO |
-| `transactionHash` | Hash de la transacción en CELO (se llena al depositar) |
-| `status` | PENDING (antes de firmar), CONFIRMED (minería confirmada), FAILED |
-| `description` | Contexto: "Depósito escrow", "Liberación de fondos", "Reembolso" |
 
 ### 3.10. `EscrowTransaction`
 
-Espejo off-chain del estado del escrow en el smart contract. Permite al backend conocer el estado on-chain sin consultar constantemente la blockchain.
+Espejo off-chain del estado del escrow en el smart contract.
 
 ```prisma
 model EscrowTransaction {
-  id                String            @id @default(cuid())
-  appointmentId     String            @unique
-  appointment       Appointment       @relation(fields: [appointmentId], references: [id])
-  clientId          String
-  client            User              @relation("EscrowClient", fields: [clientId], references: [id])
-  professionalId    String
-  professional      User              @relation("EscrowProfessional", fields: [professionalId], references: [id])
-  amount            Float             // Monto en CELO depositado
-  status            TransactionStatus @default(PENDIENTE)
-  contractIndex     Int?              // Índice de la transacción en el smart contract
-  transactionHash   String?           // Hash del depósito inicial
-  depositTxHash     String?           // Hash de la tx de depósito
-  releaseTxHash     String?           // Hash de la tx de liberación (si aplica)
-  refundTxHash      String?           // Hash de la tx de reembolso (si aplica)
-  withdrawTxHash    String?           // Hash de la tx de retiro del profesional (si aplica)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  id                String       @id @default(cuid())
+  appointmentId     String       @unique
+  appointment       Appointment  @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  transactionIndex  Int          @default(0)  // Índice en el smart contract
+  clientAddress     String       // Wallet del cliente (0x...)
+  professionalAddress String     // Wallet del profesional (0x...)
+  amount            Float        // Monto en CELO depositado
+  platformFee       Float        @default(0)  // Comisión de plataforma (5%)
+  status            EscrowStatus @default(PENDIENTE)
+  depositTxHash     String?      // Hash del depósito inicial
+  releaseTxHash     String?      // Hash de la liberación
+  refundTxHash      String?      // Hash del reembolso
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 }
 ```
 
 | Campo | Descripción |
 |-------|-------------|
-| `status` | PENDIENTE → LIBERADA o REEMBOLSADA (espejo del contrato) |
-| `contractIndex` | Índice numérico dentro del mapping del smart contract |
-| `transactionHash` | Hash de la transacción de depósito en el contrato |
-| `depositTxHash` | Hash de la tx de depósito inicial |
-| `releaseTxHash` | Hash cuando el backend llamó release() |
-| `refundTxHash` | Hash cuando el backend llamó refund() |
-| `withdrawTxHash` | Hash cuando el profesional retiró |
+| `transactionIndex` | Índice numérico dentro del mapping del smart contract |
+| `clientAddress` | Dirección wallet del cliente (no relacional, viene de la tx) |
+| `professionalAddress` | Dirección wallet del profesional |
+| `status` | PENDIENTE → LIBERADA / REEMBOLSADA |
+| `depositTxHash` | Hash de la tx de depósito en el contrato |
+| `releaseTxHash` | Hash cuando se llamó release() |
+| `refundTxHash` | Hash cuando se llamó refund() |
 
-### 3.11. `AuditLog` (opcional para MVP)
+### 3.11. `AuditLog`
 
 Registro de auditoría para acciones importantes.
 
 ```prisma
 model AuditLog {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  action      String   // "LOGIN", "REGISTER", "CREATE_REQUEST", "RESPOND_REQUEST", etc.
-  entityType  String?  // "User", "Request", "Appointment", etc.
-  entityId    String?  // ID de la entidad afectada
-  metadata    Json?    // Datos adicionales (cambios, contexto)
-  ipAddress   String?
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String   // "LOGIN", "REGISTER", "CREATE_REQUEST", etc.
+  entity    String   // "User", "Request", "Appointment", etc.
+  entityId  String?
+  metadata  Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
 }
 ```
 
@@ -504,10 +420,10 @@ model AuditLog {
 | 5 | **Request** | Consulta publicada por cliente | User (N:1) |
 | 6 | **Message** | Mensajes y respuestas a consultas | User, Request (opcional) |
 | 7 | **Appointment** | Cita para videollamada | User (N:1), Request (opcional) |
-| 8 | **AttendanceConfirmation** | Confirmación de asistencia | Appointment, User |
-| 9 | **PaymentTransaction** | Registro off-chain de pagos CELO | Appointment, User |
-| 10 | **EscrowTransaction** | Espejo del estado on-chain del contrato | Appointment, User |
-| 11 | **AuditLog** | Auditoría de acciones (opcional) | User |
+| 8 | **AttendanceConfirmation** | Confirmación de asistencia | Appointment (1:1) |
+| 9 | **PaymentTransaction** | Registro off-chain de pagos | Appointment, User |
+| 10 | **EscrowTransaction** | Espejo del estado on-chain del escrow | Appointment (1:1) |
+| 11 | **AuditLog** | Auditoría de acciones | User (opcional) |
 
 ---
 
@@ -517,7 +433,7 @@ model AuditLog {
 REGISTRO:
   POST /api/auth/register
     → INSERT User
-    → (si role=PROFESSIONAL) INSERT ProfessionalProfile + BankInfo
+    → (si role=PROFESSIONAL) INSERT ProfessionalProfile + BankInfo + Categories
 
 CREAR CONSULTA:
   POST /api/requests
@@ -530,33 +446,33 @@ RESPONDER CONSULTA:
 
 AGENDAR CITA:
   POST /api/appointments
-    → INSERT Appointment { status: SCHEDULED }
-
-CONFIRMAR ASISTENCIA:
-  POST /api/appointments/:id/confirm
-    → UPSERT AttendanceConfirmation { confirmed: true }
-    → Si ambos confirmaron → UPDATE Appointment { status: CONFIRMED_BOTH }
+    → INSERT Appointment { status: SCHEDULED, totalCost }
 
 DEPOSITAR ESCROW:
-  POST /api/payments/deposit
+  Frontend: wallet firma tx → contract.deposit() on-chain
+  → POST /api/payments/deposit
+    → Consulta transactionCounter del contrato
     → INSERT EscrowTransaction { status: PENDIENTE }
-    → INSERT PaymentTransaction { status: PENDING }
-    → Frontend firma tx en wallet → llama contract.deposit()
 
 VIDEOLLAMADA:
-  GET /consultation/:id
-    → UPDATE Appointment { status: IN_PROGRESS }
+  POST /api/appointments/:id/join (cada participante)
+    → UPDATE Appointment { clientConfirmed o professionalConfirmed = true }
+    → Si ambos true → UPDATE Appointment { status: COMPLETED }
 
-FINALIZAR:
-  POST /api/appointments/:id/complete
-    → UPDATE Appointment { status: COMPLETED }
-    → Backend llama contract.release()
-    → UPDATE EscrowTransaction { status: LIBERADA }
-    → INSERT PaymentTransaction { status: CONFIRMED }
+LIBERAR PAGO (profesional):
+  POST /api/payments/release
+    → Backend llama contract.release(transactionIndex)
+    → UPDATE EscrowTransaction { status: LIBERADA, releaseTxHash }
 
-RETIRAR:
-  Frontend (profesional) llama contract.withdraw()
-    → Webhook escucha evento → UPDATE EscrowTransaction
+REEMBOLSAR (cliente):
+  POST /api/payments/refund
+    → Backend llama contract.refund(transactionIndex)
+    → UPDATE EscrowTransaction { status: REEMBOLSADA, refundTxHash }
+
+CANCELAR CITA:
+  POST /api/appointments/:id/cancel
+    → UPDATE Appointment { status: CANCELLED }
+    → (el escrow se gestiona aparte vía refund si existe depósito)
 ```
 
 ---
@@ -566,40 +482,51 @@ RETIRAR:
 | Regla | Implementación |
 |-------|---------------|
 | Tarifa profesional entre 750-1500 COP/min | Validación Zod + check en API |
-| Duración de cita: 10, 15, 20 o 30 min | Enum de valores permitidos en validación |
-| Solo el cliente puede cancelar su consulta | Middleware de autorización por rol + ownership |
+| Duración de cita: 10, 15, 20 o 30 min | Validación Zod (`appointmentSchema`) |
+| Solo el cliente puede crear/cancelar consultas | Middleware de rol + ownership |
 | Profesional solo responde consultas PENDING | Validación de estado en API |
-| Un mensaje de profesional a Request → status = RESPONDED | Trigger en lógica de negocio (API) |
-| Ambos deben confirmar asistencia para iniciar | Verificación en AttendanceConfirmation |
-| Escrow: fondos bloqueados hasta COMPLETED o CANCELLED | Estado en EscrowTransaction + contrato |
-| No se puede agendar sin wallet registrada | Validación `walletAddress != null` en ambas partes |
-| Profesional puede tener máximo 10 categorías | Validación count < 10 |
+| Un mensaje de profesional → status = RESPONDED | Lógica en POST /api/requests/:id |
+| Ambos deben llamar /join para completar | Verificación en POST /api/appointments/:id/join |
+| Cancelación solo si scheduledAt > now | Validación en POST /api/appointments/:id/cancel |
+| No se puede depositar dos veces para misma cita | Unique appointmentId en EscrowTransaction |
+| Solo el profesional puede llamar release() | Validación session.user.id === professionalId |
+| Solo el cliente puede llamar refund() | Validación session.user.id === clientId |
 
 ---
 
 ## 7. Índices Recomendados
 
-```sql
--- Rendimiento de búsqueda de profesionales por categoría
-CREATE INDEX idx_professional_category_name ON "ProfessionalCategory"(name);
+El schema de Prisma ya incluye los siguientes índices:
 
--- Búsqueda de consultas por estado y categoría
-CREATE INDEX idx_request_status_category ON "Request"(status, category);
-
--- Consultas del cliente
-CREATE INDEX idx_request_client ON "Request"(clientId);
-
--- Mensajes por usuario (bandeja)
-CREATE INDEX idx_message_receiver ON "Message"(receiverId, read);
-
--- Citas próximas por usuario
-CREATE INDEX idx_appointment_scheduled ON "Appointment"(professionalId, scheduledAt);
-CREATE INDEX idx_appointment_client_scheduled ON "Appointment"(clientId, scheduledAt);
-
--- Transacciones de pago por usuario
-CREATE INDEX idx_payment_payer ON "PaymentTransaction"(payerId);
-CREATE INDEX idx_payment_payee ON "PaymentTransaction"(payeeId);
-
--- Escrow por estado
-CREATE INDEX idx_escrow_status ON "EscrowTransaction"(status);
+```prisma
+// Rendimiento
+@@index([email])                    // User
+@@index([role])                     // User
+@@index([profession])               // ProfessionalProfile
+@@index([ratePerMinute])            // ProfessionalProfile
+@@index([rating])                   // ProfessionalProfile
+@@index([name])                     // ProfessionalCategory
+@@index([userId])                   // BankInfo
+@@index([clientId])                 // Request
+@@index([professionalId])           // Request
+@@index([status])                   // Request
+@@index([category])                 // Request
+@@index([senderId])                 // Message
+@@index([receiverId])               // Message
+@@index([requestId])                // Message
+@@index([clientId])                 // Appointment
+@@index([professionalId])           // Appointment
+@@index([status])                   // Appointment
+@@index([scheduledAt])              // Appointment
+@@index([fromUserId])               // PaymentTransaction
+@@index([toUserId])                 // PaymentTransaction
+@@index([appointmentId])            // PaymentTransaction
+@@index([transactionHash])          // PaymentTransaction
+@@index([status])                   // EscrowTransaction
+@@index([clientAddress])            // EscrowTransaction
+@@index([transactionIndex])         // EscrowTransaction
+@@index([userId])                   // AuditLog
+@@index([action])                   // AuditLog
+@@index([entity])                   // AuditLog
+@@index([createdAt])                // AuditLog
 ```

@@ -211,7 +211,7 @@ _Objetivo: MVP desplegado y documentado._
 - [ ] **P3 S** Verificar contrato en Celo Sepolia block explorer
 - [ ] **P3 S** Deploy frontend a Vercel (producción + preview)
 - [ ] **P3 S** Configurar dominio personalizado
-- [ ] **P3 S** Base de datos PostgreSQL en producción (Neon)
+- [x] **P3 S** Base de datos PostgreSQL en Supabase ✅
 - [ ] **P3 M** Documentación técnica: README.md actualizado
 - [ ] **P3 S** Guía de usuario (pantallas y flujos)
 - [ ] **P3 S** Configurar CI/CD (GitHub Actions: lint, typecheck, test, build)

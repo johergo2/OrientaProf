@@ -25,6 +25,24 @@ export default function VideoRoomPage() {
   const [appointment, setAppointment] = useState<Appointment | null>(null)
   const [error, setError] = useState("")
   const [step, setStep] = useState<"fetching" | "joining" | "ready">("fetching")
+  const [completing, setCompleting] = useState(false)
+
+  async function handleComplete() {
+    setCompleting(true)
+    try {
+      const res = await fetch(`/api/appointments/${appointmentId}/complete`, { method: "POST" })
+      const json = await res.json()
+      if (json.success) {
+        router.push("/appointments")
+      } else {
+        setError(json.error ?? "Error al finalizar la videollamada")
+      }
+    } catch {
+      setError("Error de conexión")
+    } finally {
+      setCompleting(false)
+    }
+  }
 
   const appointmentId = params.id as string
 
@@ -114,12 +132,24 @@ export default function VideoRoomPage() {
         </header>
 
         {step === "ready" ? (
-          <iframe
-            src={`https://${JITSI_DOMAIN}/${roomName}#config.prejoinPageEnabled=false&config.lang=es&config.disableInviteFunctions=true`}
-            allow="camera; microphone; display-capture; autoplay"
-            className="flex-1 w-full border-0"
-            style={{ minHeight: 0 }}
-          />
+          <div className="flex-1 flex flex-col">
+            <iframe
+              src={`https://${JITSI_DOMAIN}/${roomName}#config.prejoinPageEnabled=false&config.lang=es&config.disableInviteFunctions=true`}
+              allow="camera; microphone; display-capture; autoplay"
+              className="flex-1 w-full border-0"
+              style={{ minHeight: 0 }}
+            />
+            <div className="p-3 bg-mint border-t border-line">
+              <button
+                type="button"
+                onClick={handleComplete}
+                disabled={completing}
+                className="w-full bg-brand-700 text-white rounded-lg py-3 text-sm font-bold cursor-pointer hover:bg-brand-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {completing ? "Finalizando..." : "Finalizar videollamada"}
+              </button>
+            </div>
+          </div>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center gap-3">
             <div className="w-10 h-10 border-3 border-brand-700 border-t-transparent rounded-full animate-spin" />

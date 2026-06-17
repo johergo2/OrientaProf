@@ -97,7 +97,7 @@ Pagos descentralizados con CELO nativo mediante escrow inteligente, garantizando
 | **Wallet** | WalletConnect via `window.ethereum` (Rabby/MetaMask) | Conexión directa sin dependencias externas |
 | **Ethers** | ethers v6 | Interacción con contratos desde backend (JsonRpcProvider + Wallet) |
 | **Testing** | Vitest + Playwright | Tests unitarios y de integración |
-| **Deploy** | Vercel (frontend) + Neon (DB) + Celo (contracts) | Infraestructura cloud |
+| **Deploy** | Vercel (frontend) + Supabase (DB) + Celo (contracts) | Infraestructura cloud |
 
 ### Diagrama de capas
 
@@ -382,7 +382,7 @@ El backend se comunica con el contrato mediante:
 - Prototipo legacy `frontend/` preservado como referencia
 
 ### Siguiente paso
-Deploy a Vercel + Neon (PostgreSQL producción). Demo walkthrough. El plan detallado está en `TODO_MVP.md`.
+Deploy a Vercel + Supabase (PostgreSQL producción). Demo walkthrough. El plan detallado está en `TODO_MVP.md`.
 
 ### Convenios del proyecto
 - **Estado**: `[ ]` Pendiente, `[x]` Completado, `[~]` En progreso

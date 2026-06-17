@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
-import { formatProposalMessage } from "@/lib/proposal-utils"
 import WalletConnect from "@/components/WalletConnect"
 
 const DURATIONS = [10, 15, 20, 30] as const
@@ -22,7 +21,7 @@ type Appointment = {
   request: { id: string; title: string } | null
 }
 
-const CELO_RATE = 0.001
+const CELO_RATE = 0.00001
 
 function costToCelo(copAmount: number | null): string {
   if (copAmount == null || copAmount <= 0) return "0.001"
@@ -51,8 +50,7 @@ export default function AppointmentsPage() {
   const [joinError, setJoinError] = useState("")
 
   const [rescheduleTarget, setRescheduleTarget] = useState<Appointment | null>(null)
-  const [rsOption1, setRsOption1] = useState("")
-  const [rsOption2, setRsOption2] = useState("")
+  const [rsNewDate, setRsNewDate] = useState("")
   const [rsDuration, setRsDuration] = useState(20)
   const [rsSending, setRsSending] = useState(false)
   const [rsError, setRsError] = useState("")
@@ -199,49 +197,40 @@ export default function AppointmentsPage() {
   async function handleReschedule() {
     setRsError("")
 
-    if (!rsOption1) { setRsError("Seleccione la Opción 1"); return }
-    if (!rsOption2) { setRsError("Seleccione la Opción 2"); return }
+    if (!rsNewDate) { setRsError("Seleccione la nueva fecha"); return }
 
-    const date1 = new Date(rsOption1)
-    const date2 = new Date(rsOption2)
-
-    if (date1 <= new Date()) { setRsError("La Opción 1 debe ser futura"); return }
-    if (date2 <= new Date()) { setRsError("La Opción 2 debe ser futura"); return }
+    const newDate = new Date(rsNewDate)
+    if (newDate <= new Date()) { setRsError("La nueva fecha debe ser futura"); return }
 
     if (!rescheduleTarget) return
 
-    const otherUser = getOtherUser(rescheduleTarget)
-    if (!otherUser) { setRsError("Destinatario no disponible"); return }
-
-    const content = formatProposalMessage({
-      option1: date1.toISOString(),
-      option2: date2.toISOString(),
-      duration: rsDuration,
-    })
-
     setRsSending(true)
     try {
-      const res = await fetch("/api/messages", {
+      const res = await fetch(`/api/appointments/${rescheduleTarget.id}/reschedule`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          receiverId: otherUser.id,
-          requestId: rescheduleTarget.request?.id,
-          content,
+          scheduledAt: newDate.toISOString(),
+          durationMinutes: rsDuration,
         }),
       })
       const json = await res.json()
       if (!json.success) {
-        setRsError(json.error ?? "Error al enviar propuesta de reagendamiento")
+        setRsError(json.error ?? "Error al reagendar la cita")
         return
       }
+      setAppointments((prev) =>
+        prev.map((a) =>
+          a.id === rescheduleTarget.id
+            ? { ...a, scheduledAt: newDate.toISOString(), durationMinutes: rsDuration }
+            : a
+        )
+      )
       setRescheduleTarget(null)
-      setRsOption1("")
-      setRsOption2("")
+      setRsNewDate("")
       setRsDuration(20)
-      alert("Propuesta de reagendamiento enviada. Revisa la bandeja de mensajes para la respuesta.")
     } catch {
-      setRsError("Error de conexión al enviar propuesta")
+      setRsError("Error de conexión al reagendar")
     } finally {
       setRsSending(false)
     }
@@ -463,8 +452,7 @@ export default function AppointmentsPage() {
                         type="button"
                         onClick={() => {
                           setRescheduleTarget(a)
-                          setRsOption1("")
-                          setRsOption2("")
+                          setRsNewDate("")
                           setRsDuration(a.durationMinutes)
                           setRsError("")
                         }}
@@ -520,21 +508,11 @@ export default function AppointmentsPage() {
 
             <div className="grid gap-3">
               <div>
-                <label className="text-ink text-[12px] font-bold block mb-1">Nueva Opción 1</label>
+                <label className="text-ink text-[12px] font-bold block mb-1">Nueva fecha</label>
                 <input
                   type="datetime-local"
-                  value={rsOption1}
-                  onChange={(e) => { setRsOption1(e.target.value); setRsError("") }}
-                  min={new Date().toISOString().slice(0, 16)}
-                  className="w-full border border-line rounded-lg bg-white text-ink p-2.5 text-sm outline-none focus:border-brand-500"
-                />
-              </div>
-              <div>
-                <label className="text-ink text-[12px] font-bold block mb-1">Nueva Opción 2</label>
-                <input
-                  type="datetime-local"
-                  value={rsOption2}
-                  onChange={(e) => { setRsOption2(e.target.value); setRsError("") }}
+                  value={rsNewDate}
+                  onChange={(e) => { setRsNewDate(e.target.value); setRsError("") }}
                   min={new Date().toISOString().slice(0, 16)}
                   className="w-full border border-line rounded-lg bg-white text-ink p-2.5 text-sm outline-none focus:border-brand-500"
                 />
@@ -558,7 +536,7 @@ export default function AppointmentsPage() {
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => { setRescheduleTarget(null); setRsError("") }}
+                onClick={() => { setRescheduleTarget(null); setRsNewDate(""); setRsError("") }}
                 className="flex-1 border border-line text-muted rounded-lg py-2.5 text-sm font-bold cursor-pointer hover:bg-brand-100 transition-colors"
               >
                 Cancelar
@@ -569,7 +547,7 @@ export default function AppointmentsPage() {
                 disabled={rsSending}
                 className="flex-1 bg-brand-700 text-white rounded-lg py-2.5 text-sm font-bold cursor-pointer hover:bg-brand-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {rsSending ? "Enviando..." : "Enviar Propuesta"}
+                {rsSending ? "Reagendando..." : "Reagendar"}
               </button>
             </div>
           </div>

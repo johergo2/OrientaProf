@@ -585,7 +585,7 @@ Confirma entrada a la videollamada de un participante (ambos roles).
 - Solo se puede join si la cita no está CANCELLED ni COMPLETED
 - Solo se puede join dentro de la ventana: 1h antes de `scheduledAt` hasta el fin de la cita
 - Marca `clientConfirmed` o `professionalConfirmed` según quién llama
-- Cuando ambos confirman → `status = COMPLETED`
+- Solo marca la confirmación del participante; no cambia el status automáticamente
 
 **Response `200`**:
 ```json
@@ -594,6 +594,59 @@ Confirma entrada a la videollamada de un participante (ambos roles).
   "data": {
     "clientConfirmed": true,
     "professionalConfirmed": false,
+    "status": "SCHEDULED"
+  }
+}
+```
+
+### `POST /api/appointments/:id/complete`
+
+Finaliza manualmente la videollamada (cualquier participante).
+
+**Reglas**:
+- Solo participantes de la cita pueden llamar
+- La cita no debe estar CANCELLED ni COMPLETED
+- Marca `status = COMPLETED` y establece `completedAt`
+
+**Response `200`**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "clx...",
+    "status": "COMPLETED",
+    "completedAt": "2026-06-17T10:00:00Z"
+  }
+}
+```
+
+### `POST /api/appointments/:id/reschedule`
+
+Cambia la fecha y duración de una cita existente (cualquier participante).
+
+**Request body**:
+```json
+{
+  "scheduledAt": "2026-06-20T16:00:00Z",
+  "durationMinutes": 20
+}
+```
+
+**Reglas**:
+- Solo participantes de la cita pueden llamar
+- La cita no debe estar CANCELLED ni COMPLETED
+- La nueva fecha debe ser futura
+- `durationMinutes` debe ser 10, 15, 20 o 30
+- Crea un registro en `AuditLog` con valores anteriores/nuevos (historial)
+
+**Response `200`**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "clx...",
+    "scheduledAt": "2026-06-20T16:00:00Z",
+    "durationMinutes": 20,
     "status": "SCHEDULED"
   }
 }
@@ -739,15 +792,21 @@ Historial de transacciones escrow del usuario autenticado.
 
 ---
 
-## 8. Reschedule (en frontend)
+## 8. Reschedule
 
-El reagendamiento se maneja del lado del frontend. Cualquier participante (cliente o profesional) puede crear una nueva cita con el mismo profesional/cliente usando `POST /api/appointments` sin necesidad de un endpoint de reschedule dedicado. La cita anterior debe cancelarse si es necesario.
+El reagendamiento se maneja mediante el endpoint `POST /api/appointments/[id]/reschedule` que modifica los campos `scheduledAt` y `durationMinutes` de la misma cita. No se cancela ni se crea una nueva cita.
+
+**Flujo**:
+1. Cualquier participante selecciona nueva fecha + duración
+2. Llama `POST /api/appointments/[id]/reschedule` con `scheduledAt` y `durationMinutes`
+3. El endpoint actualiza la cita y registra el cambio en `AuditLog`
+4. La otra parte ve la fecha actualizada en su lista
 
 ---
 
 ## 9. Videollamada (Jitsi Meet)
 
-La sala de videollamada se accede via frontend en `/appointments/[id]/room`. No hay endpoints REST dedicados — el nombre de sala Jitsi se deriva del ID de la cita (`OrientaProf-{appointmentId}`) y se embebe via iframe apuntando a `meet.jit.si`. El estado de la videollamada se maneja mediante `POST /api/appointments/[id]/join` (ver sección 6).
+La sala de videollamada se accede via frontend en `/appointments/[id]/room`. El nombre de sala Jitsi se deriva del ID de la cita (`OrientaProf-{appointmentId}`) y se embebe via iframe apuntando a `meet.jit.si`. El estado de la videollamada se maneja mediante `POST /api/appointments/[id]/join` (marca confirmación de entrada) y `POST /api/appointments/[id]/complete` (finaliza la cita manualmente).
 
 ---
 
@@ -773,7 +832,9 @@ La sala de videollamada se accede via frontend en `/appointments/[id]/room`. No 
 | `POST` | `/api/appointments` | Ambos | Agendar cita | ✅ |
 | `GET` | `/api/appointments` | Cualquiera | Listar citas | ✅ |
 | `GET` | `/api/appointments/:id` | Cualquiera | Detalle cita | ✅ |
-| `POST` | `/api/appointments/:id/join` | Ambos | Ingresar a videollamada | ✅ |
+| `POST` | `/api/appointments/:id/join` | Ambos | Confirmar entrada a videollamada | ✅ |
+| `POST` | `/api/appointments/:id/complete` | Ambos | Finalizar videollamada | ✅ |
+| `POST` | `/api/appointments/:id/reschedule` | Ambos | Reagendar (modificar fecha/duración) | ✅ |
 | `POST` | `/api/appointments/:id/cancel` | Ambos | Cancelar cita | ✅ |
 | `POST` | `/api/payments/deposit` | CLIENT | Registrar depósito escrow | ✅ |
 | `POST` | `/api/payments/release` | PROFESSIONAL | Liberar fondos escrow | ✅ |

@@ -18,19 +18,15 @@ export async function POST(
         id: true,
         clientId: true,
         professionalId: true,
-        scheduledAt: true,
-        durationMinutes: true,
         status: true,
-        clientConfirmed: true,
-        professionalConfirmed: true,
       },
     })
 
     if (!appointment) return notFoundResponse("La cita")
 
-    const isClient = session.user.id === appointment.clientId
-    const isProfessional = session.user.id === appointment.professionalId
-    if (!isClient && !isProfessional) {
+    const isParticipant =
+      session.user.id === appointment.clientId || session.user.id === appointment.professionalId
+    if (!isParticipant) {
       return errorResponse("No eres participante de esta cita", 403)
     }
 
@@ -42,31 +38,22 @@ export async function POST(
       return errorResponse("La cita ya fue completada", 400)
     }
 
-    const now = new Date()
-    const start = new Date(appointment.scheduledAt)
-    const end = new Date(start.getTime() + appointment.durationMinutes * 60 * 1000)
-
-    if (now < new Date(start.getTime() - 60 * 60 * 1000)) {
-      return errorResponse("La videollamada aún no ha iniciado. Vuelve 1 hora antes de la hora agendada.", 400)
-    }
-
-    if (now > end) {
-      return errorResponse("La videollamada ya finalizó.", 400)
-    }
-
-    const updateFields: Record<string, unknown> = isClient
-      ? { clientConfirmed: true }
-      : { professionalConfirmed: true }
-
     const updated = await prisma.appointment.update({
       where: { id },
-      data: updateFields,
-      select: { clientConfirmed: true, professionalConfirmed: true, status: true },
+      data: {
+        status: "COMPLETED",
+        completedAt: new Date(),
+      },
+      select: {
+        id: true,
+        status: true,
+        completedAt: true,
+      },
     })
 
     return successResponse(updated)
   } catch (error) {
-    console.error("Error joining appointment:", error)
-    return serverErrorResponse("Error al ingresar a la videollamada")
+    console.error("Error completing appointment:", error)
+    return serverErrorResponse("Error al finalizar la videollamada")
   }
 }
