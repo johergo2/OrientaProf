@@ -1,0 +1,18 @@
+{
+  "name": "orientaprof-blockchain",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy": "hardhat run scripts/deploy.cjs --network celoSepolia",
+    "generate-wallet": "hardhat run scripts/generate-wallet.cjs",
+    "check-balance": "hardhat run scripts/check-balance.cjs --network celoSepolia"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@openzeppelin/contracts": "^5.2.0",
+    "dotenv": "^16.4.7",
+    "hardhat": "^2.22.0"
+  }
+}

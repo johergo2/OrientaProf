@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { signOut } from "next-auth/react"
+import { signOut, useSession } from "next-auth/react"
 
 type RequestItem = {
   id: string
@@ -23,19 +23,19 @@ const statusLabels: Record<string, string> = {
 
 export default function MyRequestsPage() {
   const router = useRouter()
-  const [username, setUsername] = useState("usuario")
+  const { data: session } = useSession()
+  const username = session?.user?.name ?? "usuario"
   const [requests, setRequests] = useState<RequestItem[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/auth/session").then((r) => r.json()),
-      fetch("/api/requests").then((r) => r.json()),
-    ]).then(([sessionRes, requestsRes]) => {
-      if (sessionRes?.user?.name) setUsername(sessionRes.user.name)
-      if (requestsRes.success) setRequests(requestsRes.data)
-    }).finally(() => setLoading(false))
+    fetch("/api/requests")
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success) setRequests(res.data)
+      })
+      .finally(() => setLoading(false))
   }, [])
 
   function toggleExpand(id: string) {

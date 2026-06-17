@@ -36,6 +36,8 @@ export default function ClientDashboard() {
 
   const [filterCategory, setFilterCategory] = useState("")
   const [expandedCard, setExpandedCard] = useState<string | null>(null)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [appointmentCount, setAppointmentCount] = useState(0)
 
   useEffect(() => {
     fetch("/api/professionals")
@@ -47,6 +49,27 @@ export default function ClientDashboard() {
         }
       })
       .finally(() => setLoading(false))
+
+    fetch("/api/messages")
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success) {
+          setUnreadCount(res.data.totalUnread ?? 0)
+        }
+      })
+      .catch(() => {})
+
+    fetch("/api/appointments")
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success) {
+          const upcoming = res.data.filter(
+            (a: { status: string }) => !["COMPLETED", "CANCELLED"].includes(a.status)
+          )
+          setAppointmentCount(upcoming.length)
+        }
+      })
+      .catch(() => {})
   }, [])
 
   const filteredProfessionals = filterCategory
@@ -75,16 +98,21 @@ export default function ClientDashboard() {
           <div className="flex items-center gap-1.5">
             <Link
               href="/messages"
-              className="w-9 h-9 rounded-full bg-white border border-line grid place-items-center hover:bg-brand-100 transition-colors"
+              className="relative w-9 h-9 rounded-full bg-white border border-line grid place-items-center hover:bg-brand-100 transition-colors"
               aria-label="Mensajes"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#18312a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1 shadow-md">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
             </Link>
             <Link
               href="/appointments"
-              className="w-9 h-9 rounded-full bg-white border border-line grid place-items-center hover:bg-brand-100 transition-colors"
+              className="relative w-9 h-9 rounded-full bg-white border border-line grid place-items-center hover:bg-brand-100 transition-colors"
               aria-label="Calendario"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#18312a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -93,6 +121,11 @@ export default function ClientDashboard() {
                 <line x1="8" y1="2" x2="8" y2="6" />
                 <line x1="3" y1="10" x2="21" y2="10" />
               </svg>
+              {appointmentCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-amber text-white text-[10px] font-bold flex items-center justify-center px-1 shadow-md">
+                  {appointmentCount > 9 ? "9+" : appointmentCount}
+                </span>
+              )}
             </Link>
             <Link
               href="/settings"
@@ -216,6 +249,14 @@ export default function ClientDashboard() {
                 className="w-full bg-brand-700 text-white rounded-lg py-3 font-bold cursor-pointer hover:bg-brand-900 transition-colors shadow-[0_4px_6px_rgba(0,0,0,0.15)] active:shadow-[0_1px_2px_rgba(0,0,0,0.15)] active:translate-y-[2px] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {publishing ? "Publicando..." : "Publicar Consulta"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => router.push("/dashboard/client/my-requests")}
+                className="w-full bg-white border border-brand-700 text-brand-700 rounded-lg py-3 font-bold cursor-pointer hover:bg-brand-100 transition-colors shadow-[0_2px_4px_rgba(0,0,0,0.08)]"
+              >
+                Visualizar mis consultas
               </button>
 
               <button

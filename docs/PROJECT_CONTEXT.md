@@ -1,6 +1,6 @@
 # PROJECT_CONTEXT — OrientaProf MVP
 
-> **OrientaProf**: Plataforma que conecta usuarios que buscan orientación profesional con profesionales verificados (abogados, médicos, contadores, ingenieros, etc.) mediante videollamadas cortas pagadas por minuto, con pagos transparentes en blockchain CELO (cUSD).
+> **OrientaProf**: Plataforma que conecta usuarios que buscan orientación profesional con profesionales verificados (abogados, médicos, contadores, ingenieros, etc.) mediante videollamadas cortas pagadas por minuto, con pagos transparentes en blockchain CELO nativo.
 
 ---
 
@@ -14,7 +14,7 @@ Permitir que cualquier persona publique una consulta gratuita y reciba respuesta
 - **Profesionales**: Abogados, médicos, contadores, ingenieros, arquitectos, economistas, inversionistas, etc.
 
 ### Diferenciador clave
-Pagos descentralizados con cUSD (stablecoin en CELO) mediante escrow inteligente, garantizando transparencia y confianza sin intermediarios bancarios.
+Pagos descentralizados con CELO nativo mediante escrow inteligente, garantizando transparencia y confianza sin intermediarios bancarios.
 
 ---
 
@@ -48,14 +48,17 @@ Pagos descentralizados con cUSD (stablecoin en CELO) mediante escrow inteligente
 
 5. PAGO (Blockchain CELO — Escrow)
    Antes de la videollamada:
-   - Cliente conecta wallet (MetaMask/Valora)
-   - Aprueba y deposita cUSD en el smart contract (tarifa × duración)
-   - Fondos quedan retenidos en escrow
+   - Cliente conecta wallet (Rabby/MetaMask vía WalletConnect)
+   - Deposita CELO nativo directamente al smart contract (sin aprobaciones ERC20)
+   - Fondos quedan retenidos en escrow (estado PENDIENTE)
+   - Backend registra el depósito via `/api/payments/deposit`
 
 6. VIDEOLLAMADA
-   Ambos participantes ingresan a sala Jitsi Meet
-   → Al finalizar, el backend notifica al smart contract
-   → Smart contract libera fondos al profesional (menos comisión 5%)
+   Ambos participantes ingresan a sala Jitsi Meet via `/appointments/[id]/room`
+   → Cada uno llama `POST /api/appointments/[id]/join`
+   → Cuando ambos confirman → status COMPLETED
+   → Profesional llama `/api/payments/release` para liberar fondos (con comisión 5%)
+   → O cliente llama `/api/payments/refund` para reembolso
 
 7. CALIFICACIÓN (On-chain)
    Cliente califica al profesional (1-5)
@@ -90,11 +93,11 @@ Pagos descentralizados con cUSD (stablecoin en CELO) mediante escrow inteligente
 | **Base de datos** | PostgreSQL | Datos relacionales del negocio |
 | **Video** | Jitsi Meet API (embebido) | Videollamadas sin infraestructura propia |
 | **Smart Contracts** | Solidity + Hardhat | Lógica de pagos on-chain |
-| **Blockchain** | Celo (Alfajores → Mainnet) | Pagos con cUSD, transparencia |
-| **Wallet** | RainbowKit + Wagmi + Viem | Conexión de wallets (MetaMask, Valora) |
-| **SDK Celo** | @celo/contractkit | Interacción con contratos en Celo |
+| **Blockchain** | Celo (Sepolia → Mainnet) | Pagos con CELO nativo, transparencia |
+| **Wallet** | WalletConnect via `window.ethereum` (Rabby/MetaMask) | Conexión directa sin dependencias externas |
+| **Ethers** | ethers v6 | Interacción con contratos desde backend (JsonRpcProvider + Wallet) |
 | **Testing** | Vitest + Playwright | Tests unitarios y de integración |
-| **Deploy** | Vercel (frontend) + Railway (DB) + Celo (contracts) | Infraestructura cloud |
+| **Deploy** | Vercel (frontend) + Neon (DB) + Celo (contracts) | Infraestructura cloud |
 
 ### Diagrama de capas
 
@@ -105,8 +108,8 @@ Pagos descentralizados con cUSD (stablecoin en CELO) mediante escrow inteligente
 │  │ Next.js  │  │ Tailwind │  │   Zustand  │  │ TanStack      │  │
 │  │ (React)  │  │   CSS    │  │  (Estado)  │  │ Query (Cache) │  │
 │  └────┬─────┘  └──────────┘  └────────────┘  └───────┬───────┘  │
-│       │              RainbowKit + Wagmi + Viem         │          │
-│       │              (Conexión Wallet → CELO)          │          │
+│       │         WalletConnect (window.ethereum)         │          │
+│       │          (Rabby / MetaMask → CELO)             │          │
 └──────────────────────┬───────────────────────────────────────────┘
                        │
            ┌───────────┼───────────────┐
@@ -140,91 +143,94 @@ Pagos descentralizados con cUSD (stablecoin en CELO) mediante escrow inteligente
          └────────────────┘
 ```
 
-### Estructura de directorios objetivo
+### Estructura de directorios real (MVP)
 
 ```
 /
-├── app/                          # Next.js 14 App Router
-│   ├── layout.tsx                # Layout raíz (Providers, Navbar)
+├── app/                          # Next.js 16 App Router
+│   ├── layout.tsx                # Layout raíz (PhoneShell max-width 420px)
 │   ├── page.tsx                  # Landing / Welcome
+│   ├── globals.css               # Tailwind v4 + colores brand-*
 │   ├── auth/
 │   │   ├── login/page.tsx
 │   │   ├── register/
 │   │   │   ├── client/page.tsx
 │   │   │   └── professional/page.tsx
-│   │   └── callback/route.ts
 │   ├── dashboard/
 │   │   ├── client/
-│   │   │   ├── page.tsx                   # Dashboard cliente completo
-│   │   │   └── my-requests/page.tsx       # Mis consultas
+│   │   │   ├── page.tsx          # Dashboard cliente (publicar + buscar)
+│   │   │   └── my-requests/page.tsx
 │   │   └── professional/
-│   │       ├── page.tsx                     # Dashboard profesional
+│   │       ├── page.tsx          # Dashboard profesional (consultas + wallet)
 │   │       └── respond/
-│   │           └── [requestId]/page.tsx     # Responder consulta
-│   ├── messages/page.tsx
-│   ├── appointments/page.tsx
-│   ├── settings/
-│   │   ├── page.tsx
-│   │   ├── personal-data/page.tsx
-│   │   ├── password/page.tsx
-│   │   └── payment/page.tsx
-│   ├── consultation/[id]/page.tsx # Sala de videollamada
-│   └── api/                      # Backend API Routes
+│   │           └── [requestId]/page.tsx
+│   ├── appointments/
+│   │   ├── page.tsx              # Lista + modal pago CELO
+│   │   └── [id]/room/page.tsx    # Sala Jitsi Meet
+│   └── api/
 │       ├── auth/
 │       │   ├── [...nextauth]/route.ts
 │       │   └── register/route.ts
-│       ├── users/
-│       │   ├── [id]/route.ts
-│       │   └── me/route.ts
-│       ├── professionals/
-│       │   └── route.ts                   # GET listar profesionales
+│       ├── user/
+│       │   ├── wallet/route.ts
+│       │   └── profile/route.ts
+│       ├── professionals/route.ts
 │       ├── requests/
-│       │   ├── route.ts                   # GET listar + POST crear consultas
+│       │   ├── route.ts
 │       │   └── [id]/
-│       │       └── route.ts               # GET detalle + POST responder
+│       │       ├── route.ts
+│       │       └── cancel/route.ts
 │       ├── messages/route.ts
-│       ├── appointments/route.ts
+│       ├── appointments/
+│       │   ├── route.ts
+│       │   └── [id]/
+│       │       ├── route.ts
+│       │       ├── join/route.ts
+│       │       └── cancel/route.ts
 │       └── payments/
-│           ├── route.ts
-│           └── webhook/route.ts
-├── components/                   # Componentes React reutilizables
-│   ├── ui/                       # Design system (Button, Card, Input, etc.)
-│   ├── layout/                   # Navbar, Sidebar, PhoneShell
-│   ├── auth/                     # LoginForm, RegisterForm, RoleSelector
-│   ├── client/                   # RequestForm, ProfessionalCard, etc.
-│   ├── professional/             # AvailableRequests, RateEditor, etc.
-│   ├── messages/                 # MessageList, MessageThread
-│   ├── appointments/             # CalendarView, AppointmentCard
-│   ├── video/                    # VideoCallRoom
-│   └── blockchain/               # WalletConnect, PaymentButton, TransactionHistory
-├── lib/                          # Utilidades compartidas
+│           ├── deposit/route.ts
+│           ├── release/route.ts
+│           ├── refund/route.ts
+│           └── transactions/route.ts
+├── components/                   # Componentes React
+│   ├── ui/                       # Button, Card, Input, Badge, Modal, Spinner
+│   ├── layout/                   # PhoneShell, TopBar, NavIcons
+│   ├── auth/                     # LoginForm, RegisterForm (2 roles)
+│   ├── client/                   # ProfessionalCard
+│   ├── blockchain/               # WalletConnect
+│   └── icons/                    # SVG iconos
+├── lib/
 │   ├── prisma.ts                 # Cliente Prisma singleton
 │   ├── auth.ts                   # Configuración NextAuth
+│   ├── auth.config.ts            # Auth config de edge/middleware
 │   ├── validations.ts            # Schemas Zod
 │   ├── constants.ts              # Constantes del negocio
-│   ├── utils.ts                  # Funciones helper
-│   └── celo.ts                   # Utilidades CELO
+│   ├── api-response.ts           # Helpers de respuesta HTTP
+│   └── blockchain.ts             # ethers v6 helpers (callRelease, callRefund, getTransaction)
 ├── prisma/
-│   ├── schema.prisma             # Modelo de datos completo
-│   └── seed.ts                   # Datos de prueba
-├── contracts/                    # Smart Contracts Solidity
-│   ├── contracts/
-│   │   ├── OrientaProfPayments.sol
-│   │   └── OrientaProfReputation.sol
-│   ├── scripts/deploy.ts
-│   ├── test/OrientaProfPayments.test.ts
-│   └── hardhat.config.ts
-├── hooks/                        # Custom hooks React
-├── providers/                    # Context providers
-├── types/                        # Tipos TypeScript compartidos
-├── public/assets/                # Activos estáticos
-├── styles/globals.css            # Estilos globales Tailwind
+│   ├── schema.prisma
+│   └── seed.ts
+├── contracts/                    # Smart Contract Solidity
+│   └── OrientaProfPayments.sol
+├── blockchain/                   # Hardhat subproject (CommonJS)
+│   ├── hardhat.config.cjs
+│   ├── package.json
+│   ├── contracts/OrientaProfPayments.sol
+│   └── scripts/
+│       ├── deploy.cjs
+│       ├── deploy-local.cjs
+│       ├── generate-wallet.cjs
+│       └── check-balance.cjs
+├── public/assets/
+├── types/                        # next-auth.d.ts
+├── middleware.ts                 # Protección de rutas
 ├── backend/                      # (Legacy) prototipo vanilla
 ├── frontend/                     # (Legacy) prototipo vanilla
-├── .env.local
-├── tailwind.config.ts
+├── .env / .env.example
+├── eslint.config.mjs
 ├── next.config.ts
 ├── vercel.json
+├── tsconfig.json
 └── package.json
 ```
 
@@ -232,152 +238,18 @@ Pagos descentralizados con cUSD (stablecoin en CELO) mediante escrow inteligente
 
 ## 4. Entidades de Base de Datos (Prisma)
 
-### Modelo completo
+### Resumen de modelos
 
-```prisma
-enum Role {
-  CLIENT
-  PROFESSIONAL
-}
+El schema Prisma actual contiene los siguientes modelos y enums (ver `prisma/schema.prisma` para el modelo completo):
 
-enum RequestStatus {
-  PENDING
-  RESPONDED
-  CANCELLED
-  COMPLETED
-}
-
-enum AppointmentStatus {
-  SCHEDULED
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
-}
-
-model User {
-  id             String   @id @default(cuid())
-  username       String   @unique
-  email          String   @unique
-  passwordHash   String
-  role           Role     @default(CLIENT)
-  fullName       String
-  documentType   String?
-  documentNumber String?
-  gender         String?
-  country        String?
-  city           String?
-  dateOfBirth    DateTime?
-  address        String?
-  walletAddress  String?                    // Wallet CELO del usuario
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  professionalProfile     ProfessionalProfile?
-  sentMessages            Message[]        @relation("Sender")
-  receivedMessages        Message[]        @relation("Receiver")
-  clientRequests          Request[]        @relation("ClientRequests")
-  professionalRequests    Request[]        @relation("ProfessionalRequests")
-  clientAppointments      Appointment[]    @relation("ClientAppointments")
-  professionalAppointments Appointment[]   @relation("ProfessionalAppointments")
-}
-
-model ProfessionalProfile {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  user            User     @relation(fields: [userId], references: [id])
-  profession      String
-  ratePerMinute   Float    @default(1200)   // COP
-  rating          Float    @default(0)
-  experienceYears Int?
-  description     String?
-  documentFile    String?                   // URL identificación
-  diplomaFile     String?                   // URL diploma/acta
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  categories ProfessionalCategory[]
-}
-
-model ProfessionalCategory {
-  id        String             @id @default(cuid())
-  profileId String
-  profile   ProfessionalProfile @relation(fields: [profileId], references: [id])
-  name      String
-}
-
-model Request {
-  id              String        @id @default(cuid())
-  clientId        String
-  client          User          @relation("ClientRequests", fields: [clientId], references: [id])
-  professionalId  String?
-  professional    User?         @relation("ProfessionalRequests", fields: [professionalId], references: [id])
-  category        String
-  title           String
-  description     String
-  status          RequestStatus @default(PENDING)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  messages Message[]
-}
-
-model Message {
-  id          String   @id @default(cuid())
-  requestId   String?
-  request     Request? @relation(fields: [requestId], references: [id])
-  senderId    String
-  sender      User     @relation("Sender", fields: [senderId], references: [id])
-  receiverId  String
-  receiver    User     @relation("Receiver", fields: [receiverId], references: [id])
-  content     String
-  read        Boolean  @default(false)
-  createdAt   DateTime @default(now())
-}
-
-model Appointment {
-  id              String            @id @default(cuid())
-  clientId        String
-  client          User              @relation("ClientAppointments", fields: [clientId], references: [id])
-  professionalId  String
-  professional    User              @relation("ProfessionalAppointments", fields: [professionalId], references: [id])
-  requestId       String?
-  scheduledAt     DateTime
-  durationMinutes Int               @default(20)
-  status          AppointmentStatus @default(SCHEDULED)
-  videoRoomUrl    String?
-  transactionHash String?            // Hash de la transacción CELO
-  totalCost       Float?             // Costo en cUSD
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-}
-
-model PaymentTransaction {
-  id              String       @id @default(cuid())
-  appointmentId   String?
-  appointment     Appointment? @relation(fields: [appointmentId], references: [id])
-  fromAddress     String       // Wallet del cliente
-  toAddress       String       // Wallet del profesional
-  amount          Float        // Monto en cUSD
-  token           String       @default("cUSD")
-  transactionHash String       @unique
-  blockNumber     Int?
-  status          String       @default("PENDING") // PENDING, CONFIRMED, FAILED
-  createdAt       DateTime     @default(now())
-}
-
-model BankInfo {
-  id            String   @id @default(cuid())
-  userId        String   @unique
-  user          User     @relation(fields: [userId], references: [id])
-  country       String   @default("Colombia")
-  bankName      String
-  accountType   String   // Ahorros / Corriente
-  accountNumber String
-  accountHolder String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-}
-```
+- **User** — Usuario del sistema (cliente o profesional). Campos: id, username, email, passwordHash, role, fullName, walletAddress, datos personales opcionales.
+- **ProfessionalProfile** — Extensión del perfil profesional: profession, ratePerMinute, rating, experienceYears, description, documentFile, diplomaFile.
+- **ProfessionalCategory** — Categorías/áreas de especialización del profesional.
+- **Request** — Consulta publicada por un cliente. Status: PENDING → RESPONDED → CANCELLED/COMPLETED.
+- **Message** — Mensajes dentro del hilo de una consulta.
+- **Appointment** — Cita agendada para videollamada. Status: SCHEDULED, COMPLETED, CANCELLED. Campos: scheduledAt, durationMinutes, totalCost, clientConfirmed, professionalConfirmed.
+- **EscrowTransaction** — Transacción de depósito en escrow. Status: PENDIENTE → LIBERADA/REEMBOLSADA. Relación 1:1 con Appointment. Campos: transactionIndex, clientAddress, professionalAddress, amount, depositTxHash, releaseTxHash, refundTxHash.
+- **BankInfo** — Información bancaria del profesional para retiros fiduciarios.
 
 ### Descripción de entidades
 
@@ -454,93 +326,68 @@ contract OrientaProfPayments {
 ### Flujo de fondos
 
 ```
-1. CREATE: Cliente aprueba cUSD → contrato.transferFrom(cliente, contrato, amount)
+1. DEPOSIT: Cliente envía CELO nativo via msg.value al contrato
    - amount = ratePerMinute × durationMinutes
-   - Fondos quedan retenidos en el contrato
+   - Fondos quedan retenidos en escrow (PENDIENTE)
 
-2. START: Videollamada inicia (llamado por backend)
-   - Marca startTime = block.timestamp
+2. JOIN: Ambos participantes ingresan a la videollamada
+   - Cada uno llama POST /api/appointments/[id]/join
+   - Cuando ambos confirman → status COMPLETED
 
-3. COMPLETE: Videollamada finaliza (llamado por backend)
-   - Calcula plataformaFee (5%)
-   - Transferencia al profesional: amount - fee
-   - Transferencia a platformWallet: fee
-   - Emite evento ConsultationCompleted
+3. RELEASE: Profesional llama release(txIndex) via backend API
+   - EscrowTransaction cambia a LIBERADA
+   - Fondos disponibles para retiro del profesional (withdraw)
 
-4. CANCEL: Cliente o sistema cancela
-   - Reembolso al cliente: amount - fee (penalización)
-   - Transferencia a platformWallet: fee
-   - Emite evento ConsultationCancelled
+4. REFUND: Cliente llama refund(txIndex) via backend API
+   - Se descuenta 5% (gasFeeBps = 500)
+   - Resto devuelto al cliente
+   - EscrowTransaction cambia a REEMBOLSADA
 ```
 
-### OrientaProfReputation.sol — Contrato de reputación
+### OrientaProfReputation.sol — (deferido fuera del MVP)
 
-Propósito: Registrar calificaciones de profesionales en blockchain (inmutable y transparente).
-
-```solidity
-contract OrientaProfReputation {
-    struct Rating {
-        address client;
-        uint8 score;      // 1-5
-        uint256 timestamp;
-        string comment;
-    }
-
-    struct ProfessionalReputation {
-        uint256 totalScore;
-        uint256 ratingCount;
-        uint256 average;  // Score × 100 para evitar decimales
-        Rating[] history;
-    }
-
-    mapping(address => ProfessionalReputation) public reputations;
-
-    event Rated(address indexed professional, address indexed client, uint8 score);
-
-    function rateProfessional(address _professional, uint8 _score, string calldata _comment) external;
-    function getRating(address _professional) external view returns (uint256 average, uint256 count);
-    function getProfessionalHistory(address _professional) external view returns (Rating[] memory);
-}
-```
+El contrato de reputación on-chain queda fuera del MVP. Las calificaciones se manejan solo en base de datos si se implementan.
 
 ### Integración con el backend
 
-El backend se comunica con los contratos mediante:
-- **Viem/Wagmi** (frontend → firma de transacciones del cliente)
-- **@celo/contractkit** (backend → llamadas administrativas: start, complete)
-- **Webhook** `/api/payments/webhook` para escuchar eventos on-chain y actualizar la DB
+El backend se comunica con el contrato mediante:
+- **WalletConnect (window.ethereum)** (frontend → firma de depósito del cliente)
+- **ethers v6** (backend → llamadas release/refund via JsonRpcProvider + Wallet signer)
+- **API Routes** (`/api/payments/deposit`, `/api/payments/release`, `/api/payments/refund`) sincronizan el estado off-chain con el contrato
 
 ---
 
 ## 6. Estado Actual del Proyecto
 
-### Estado actual (Next.js)
-- Migración iniciada a Next.js 16 + TypeScript + Tailwind v4 + Prisma v5 + NextAuth v5
-- Registro de clientes y profesionales funcional con validación Zod
-- Login funcional con NextAuth (credentials + JWT)
+### Estado actual (MVP funcional)
+- **Next.js 16** + **TypeScript** + **Tailwind v4** + **Prisma v5** + **NextAuth v5**
+- Registro dual-rol con validación, login con NextAuth (credentials + JWT)
 - Middleware de protección de rutas por rol
-- Schema Prisma completo con 11 modelos y seed de prueba (PostgreSQL 18.4 local)
-- API endpoints implementados:
-  - `GET /api/professionals` — lista profesionales activos con perfil, rating, categorías
-  - `GET /api/requests` — CLIENT ve sus consultas, PROFESSIONAL ve PENDING + categorías
-  - `POST /api/requests` — crear consulta (cliente)
-  - `GET /api/requests/[id]` — detalle de consulta individual
-  - `POST /api/requests/[id]` — profesional responde (crea Message + status RESPONDED)
-  - `POST /api/auth/register` — registro dual-rol
-- Dashboard cliente (`/dashboard/client`) funcional: publicar consulta (POST real), buscar profesional, categorías desde BD
-- Página Mis Consultas (`/dashboard/client/my-requests`) con listado, descripción expandible, acciones Modificar/Cancelar/Eliminar
-- Dashboard profesional (`/dashboard/professional`) con consultas PENDING, filtro por categoría, botón "Responder ofreciendo asesoría"
-- Página responder consulta (`/dashboard/professional/respond/[requestId]`) con detalle + textarea + envío de propuesta
+- Schema Prisma completo con seed de prueba (PostgreSQL)
+- **API endpoints** (17 rutas implementadas):
+  - Auth: register, login/logout/session (NextAuth)
+  - Usuarios: GET /api/user/profile, PATCH /api/user/wallet
+  - Profesionales: GET /api/professionals
+  - Requests: CRUD completo + responder + cancelar (6 endpoints)
+  - Mensajes: GET bandeja por conversación, POST enviar (2 endpoints)
+  - Citas: POST agendar, GET listar, GET detalle, POST join, POST cancelar (5 endpoints)
+  - Pagos: POST deposit, POST release, POST refund, GET transactions (4 endpoints)
+- **Dashboards** completos: cliente (/dashboard/client + my-requests), profesional (/dashboard/professional + respond/[id])
+- **Appointments** page (`/appointments`): tabs, join/cancel/reschedule, modal pago CELO, botones refund/release
+- **Jitsi Meet** room (`/appointments/[id]/room`): iframe con meet.jit.si, verificación, join automático
+- **Smart contract `OrientaProfPayments`** desplegado en Celo Sepolia (`0x25eC8EC72aBDB67b9C24E5838B0063AeB264a54b`)
+- **WalletConnect** component: conexión Rabby/MetaMask, switch a Celo Sepolia, depósito al contrato
+- **Blockchain helpers** (`lib/blockchain.ts`): ethers v6, JsonRpcProvider + Wallet, callRelease/callRefund/getTransaction
+- **Hardhat** subdirectorio (`blockchain/`): CommonJS, scripts deploy/generate-wallet/check-balance
 - Prototipo legacy `frontend/` preservado como referencia
 
 ### Siguiente paso
-Implementar endpoints faltantes de Lote 2 (PUT /api/users/me, GET /api/messages, POST /api/messages, citas). El plan detallado de 82 tareas está en `TODO_MVP.md`.
+Deploy a Vercel + Neon (PostgreSQL producción). Demo walkthrough. El plan detallado está en `TODO_MVP.md`.
 
 ### Convenios del proyecto
 - **Estado**: `[ ]` Pendiente, `[x]` Completado, `[~]` En progreso
 - **Prioridad**: P0 (bloqueante), P1 (alta), P2 (media), P3 (baja)
 - **Esfuerzo**: S (horas), M (días), L (semanas)
-- **No iniciar blockchain** sin completar backend funcional (Lotes 1-2)
 - Preservar diseño visual mobile-first (max-width 420px, PhoneShell) del prototipo actual
 
 ---
@@ -552,23 +399,19 @@ Implementar endpoints faltantes de Lote 2 (PUT /api/users/me, GET /api/messages,
 DATABASE_URL="postgresql://..."
 
 # NextAuth
-NEXTAUTH_URL="https://..."
+NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="..."
 
-# Jitsi Meet
-JITSI_DOMAIN="meet.jit.si"
-JITSI_APP_ID="..."
-JITSI_APP_SECRET="..."
+# Jitsi Meet (público)
+NEXT_PUBLIC_JITSI_DOMAIN="meet.jit.si"
 
-# CELO Blockchain
-CELO_RPC_URL="https://alfajores-forno.celo-testnet.org"
-CELO_PRIVATE_KEY="..."
-CELO_PAYMENTS_CONTRACT_ADDRESS="0x..."
-CELO_REPUTATION_CONTRACT_ADDRESS="0x..."
+# CELO Blockchain (Sepolia testnet)
+CELO_RPC_URL="https://forno.celo-sepolia.celo-testnet.org"
+CELO_PRIVATE_KEY="0x..."
+CELO_PAYMENTS_CONTRACT_ADDRESS="0x25eC8EC72aBDB67b9C24E5838B0063AeB264a54b"
 
-# Wallet Connect
-NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID="..."
-
-# Vercel
-VERCEL_ENV="production|preview|development"
+# Next.js public envs
+NEXT_PUBLIC_CELO_PAYMENTS_CONTRACT_ADDRESS="0x25eC8EC72aBDB67b9C24E5838B0063AeB264a54b"
+NEXT_PUBLIC_CELO_RPC_URL="https://forno.celo-sepolia.celo-testnet.org"
+NEXT_PUBLIC_CELO_CHAIN_ID="11142220"
 ```

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next"
 import "./globals.css"
+import AuthProvider from "@/providers/AuthProvider"
 
 export const metadata: Metadata = {
   title: "OrientaProf",
@@ -20,7 +21,7 @@ export default function RootLayout({
   return (
     <html lang="es" className="h-full">
       <body className="min-h-full flex flex-col bg-gradient-to-br from-[#e9f8ef] via-[#bfe9cf] to-[#f8fbf5]">
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   )

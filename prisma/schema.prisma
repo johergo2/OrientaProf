@@ -227,6 +227,7 @@ model EscrowTransaction {
   id              String       @id @default(cuid())
   appointmentId   String       @unique
   appointment     Appointment  @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  transactionIndex Int         @default(0)
   clientAddress   String
   professionalAddress String
   amount          Float
@@ -240,6 +241,7 @@ model EscrowTransaction {
 
   @@index([status])
   @@index([clientAddress])
+  @@index([transactionIndex])
 }
 
 model AuditLog {

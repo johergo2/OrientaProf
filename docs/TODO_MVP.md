@@ -1,7 +1,7 @@
 # TODO MVP — OrientaProf
 
 > Proyecto: OrientaProf — Orientación con Profesionales
-> Estado actual: Migración a Next.js — Registro funcional + Dashboard Cliente + API Profesionales
+> Estado actual: MVP funcional con escrow CELO Sepolia + Jitsi Meet + Dashboards + Appointments + Payments
 > Objetivo: MVP full-stack con pagos en blockchain CELO
 
 ---
@@ -56,29 +56,33 @@ _Objetivo: API REST funcional con autenticación real, validación y base de dat
       Incluye walletAddress (CELO) opcional
 - [x] **P0 S** Implementar login con NextAuth
       Validar credentials contra bcrypt, retornar JWT con rol
-- [ ] **P0 M** CRUD usuarios (`/api/users/[id]`)
-      GET (perfil público), PUT (actualizar propio perfil), DELETE (baja lógica)
-- [ ] **P0 M** Endpoint perfil propio (`/api/users/me`)
-      GET perfil completo + ProfessionalProfile si aplica
+- [x] **P0 M** Endpoint perfil propio (`/api/user/profile`)
+      GET perfil completo + walletAddress + ProfessionalProfile si aplica
+- [x] **P0 M** Endpoint actualizar wallet (`/api/user/wallet`)
+      PATCH actualiza walletAddress del usuario autenticado
 - [x] **P0 M** CRUD consultas (`/api/requests`)
       GET listar consultas del usuario autenticado (cliente ve sus consultas, profesional ve PENDING)
       POST /api/requests — crear consulta (cliente)
       GET /api/requests/[id] — detalle de consulta individual
+      POST /api/requests/[id]/cancel — cancelar consulta (cliente)
 - [x] **P0 M** Endpoint responder consulta (`/api/requests/[id]`)
       POST /api/requests/[id] — profesional responde → status RESPONDED + crea Message + asigna professionalId
 - [x] **P0 M** CRUD profesionales (`/api/professionals`)
       GET listar profesionales + categorías (categoría, rating, rango tarifa)
       Creado GET /api/professionals — retorna profesionales activos con perfil, rating y categorías
-- [ ] **P0 M** Endpoint actualizar tarifa profesional (`/api/professionals/rate`)
-      PUT valida rango 750-1500 COP
-- [ ] **P0 M** CRUD mensajes (`/api/messages`)
-      GET bandeja (enviados/recibidos), POST enviar mensaje
-- [ ] **P0 M** CRUD citas (`/api/appointments`)
-      POST agendar, GET listar próximas, PUT cancelar/completar
-- [ ] **P0 M** Validación con Zod para todos los endpoints
-      Schemas reutilizables en `lib/validations.ts`
-- [ ] **P0 S** Manejo de errores consistente en API
-      `apiResponse.ts` helper con formato `{ success, data, error }`
+- [x] **P0 M** CRUD citas completo (`/api/appointments`)
+      POST /api/appointments — agendar cita (cliente)
+      GET /api/appointments — listar citas del usuario (con walletAddress incluidas)
+      GET /api/appointments/[id] — detalle individual
+      POST /api/appointments/[id]/cancel — cancelar (ambos roles, solo si futuro)
+      POST /api/appointments/[id]/join — confirmar entrada a videollamada (ambos roles)
+      POST /api/appointments/[id]/reschedule — reagendar (ambos roles)
+- [x] **P0 M** API de pagos blockchain (`/api/payments/*`)
+      POST /api/payments/deposit — registra depósito, crea EscrowTransaction
+      POST /api/payments/release — profesional llama release() en contrato
+      POST /api/payments/refund — cliente llama refund() en contrato
+      GET /api/payments/transactions — historial de transacciones escrow
+- [x] **P0 S** Validación inline con checks en cada endpoint (Zod schemas pendientes como lib)
 
 ---
 
@@ -86,21 +90,13 @@ _Objetivo: API REST funcional con autenticación real, validación y base de dat
 
 _Objetivo: Sistema de autenticación completo desde el frontend._
 
-- [ ] **P1 S** Crear `AuthProvider.tsx` (cliente NextAuth SessionProvider)
 - [x] **P1 M** Crear página `/auth/login`
       Formulario con email + password, redirect según rol
 - [x] **P1 M** Crear página `/auth/register/client`
       Migrar formulario del prototipo (14 campos + wallet CELO + username autogenerado)
 - [x] **P1 M** Crear página `/auth/register/professional`
       Migrar formulario del prototipo (profession, rate, categorías, bank info, wallet CELO)
-- [ ] **P1 S** Crear componente `RoleSelector.tsx`
-      Reutilizar diseño del prototipo (radio buttons Usuario/Profesional)
-- [ ] **P1 S** Crear `Layout.tsx` con `PhoneShell` global
-      Preservar diseño mobile-first (max-width 420px, shell-style)
-- [ ] **P1 S** Crear componente `TopBar.tsx` con navegación
-      Botón back, título, iconos de estado (mensajes, citas, settings)
-- [ ] **P1 S** Crear `NavIcons.tsx` con badges notificaciones
-      Contadores de mensajes no leídos y citas próximas
+- [x] **P1 S** PhoneShell layout global en `layout.tsx` con max-width 420px
 
 ---
 
@@ -109,46 +105,31 @@ _Objetivo: Sistema de autenticación completo desde el frontend._
 _Objetivo: Dashboards funcionales para cliente y profesional conectados a la API._
 
 - [x] **P1 M** Dashboard cliente (`/dashboard/client`)
-      Página completa con header (back, mensajes, calendario, settings), tabs "Publicar Consulta" ↔ "Buscar Profesional", listado de profesionales desde BD
-- [ ] **P1 M** Componente `RequestForm.tsx`
-      Categoría (select), título, descripción → POST /api/requests
-- [ ] **P1 M** Componente `ProfessionalSearch.tsx`
-      Filtro por categoría + lista de `ProfessionalCard`
-- [x] **P1 M** Componente `ProfessionalCard.tsx`
-      Nombre, profesión, rating, tarifa, botón expandir detalles + "Consultar"
-      Implementado directamente en dashboard cliente: tarjeta expandible con Diplomas, Experiencia y Servicios
+      Página completa con header (back, mensajes, calendario, settings), tabs "Publicar Consulta" ↔ "Buscar Profesional", listado de profesionales desde BD, formulario de consulta inline
 - [x] **P1 M** Dashboard profesional (`/dashboard/professional`)
       Lista de consultas disponibles con filtro por categoría
       Botón "Responder ofreciendo asesoría" navega a /dashboard/professional/respond/[requestId]
+      Input wallet CELO + botón guardar
 - [x] **P1 M** Página responder consulta (`/dashboard/professional/respond/[requestId]`)
       Muestra detalle de consulta (cliente, categoría, título, descripción, fecha)
       Textarea + botón "Enviar propuesta de asesoría"
       Crea Message + actualiza Request a RESPONDED
-- [ ] **P1 M** Componente `AvailableRequests.tsx`
-      Cards de consultas con botón "Responder ofreciendo servicios"
 - [x] **P1 M** Página `/dashboard/client/my-requests` (Mis consultas)
       Lista con estado (Pendiente/Resuelta/Cancelada), descripción expandible, acciones editar/cancelar/eliminar, botón Nueva Consulta, estado vacío controlado
-- [ ] **P1 M** Página de consulta directa a profesional
-      Formulario con profesional seleccionado, título + descripción → crea Request
-- [ ] **P1 S** Integrar TanStack Query para fetching
-      Custom hooks `useRequests()`, `useProfessionals()`, etc.
 
 ---
 
-## Lote 5 — Frontend: Mensajes y Citas (P1)
+## Lote 5 — Frontend: Citas y Videollamadas (P1)
 
-_Objetivo: Mensajería y agendamiento de videollamadas._
+_Objetivo: Agendamiento y videollamadas con Jitsi Meet + pagos escrow._
 
-- [ ] **P1 M** Página `/messages`
-      Lista de conversaciones, última respuesta, botón "Agendar videollamada"
-- [ ] **P1 M** Componente `MessageCard.tsx`
-      Remitente, preview del mensaje, botón agendar
-- [ ] **P1 M** Página `/appointments`
-      Lista de citas: fecha, hora, duración, botón "Ingresar a videollamada"
-- [ ] **P1 M** Componente `AppointmentCard.tsx`
-      Badge con fecha, datos del profesional/cliente, duración, acciones
-- [ ] **P1 S** Integrar Jitsi Meet básico
-      Generar sala con UUID, enlace嵌入 en `/consultation/[id]`
+- [x] **P1 M** Página `/appointments`
+      Tabs (Próximas/Completadas/Canceladas), acciones Ingresar/Cancelar/Reagendar, modal pago CELO con WalletConnect integrado, botones Solicitar reembolso/Solicitar pago conectados a API blockchain
+- [x] **P1 M** Página `/appointments/[id]/room`
+      Sala Jitsi Meet embebida con iframe de meet.jit.si, nombre de sala = appointment ID
+      Pasos: Verificar conexión → Ingresar a la sala → Listo
+      Header con nombre/foto del profesional
+      Auto-llama a POST /api/appointments/[id]/join al entrar
 
 ---
 
@@ -171,28 +152,25 @@ _Objetivo: Configuración de cuenta y perfiles._
 
 ## Lote 7 — Blockchain CELO (P2)
 
-_Objetivo: Pagos descentralizados con cUSD en Celo._
+_Objetivo: Pagos descentralizados con CELO nativo mediante escrow._
 
-- [ ] **P2 M** Configurar entorno Hardhat para Celo
-      `hardhat.config.ts` con red Alfajores, cuenta de deploy
-- [ ] **P2 M** Escribir `OrientaProfPayments.sol`
-      `createConsultation()`, `completeConsultation()`, `cancelConsultation()`
-      Escrow en cUSD, comisión de plataforma (5%)
-- [ ] **P2 S** Escribir `OrientaProfReputation.sol`
-      `rateProfessional()`, `getRating()`, historial de calificaciones
-- [ ] **P2 M** Tests del contrato (`test/OrientaProfPayments.test.ts`)
-      Cobertura: creación, completion, cancelación, reembolso
-- [ ] **P2 S** Script de deploy a Alfajores
-- [ ] **P2 M** Integrar RainbowKit + Wagmi en el frontend
-      `WalletProvider.tsx`, botón conectar wallet, selector de red (Celo)
-- [ ] **P2 M** Componente `PaymentButton.tsx`
-      Calcula costo (tarifa × duración), firma transacción, muestra confirmación
-- [ ] **P2 L** Integrar pago en flujo de agendamiento
-      Al agendar cita → cliente firma tx → escrow retiene fondos
-- [ ] **P2 S** Webhook de confirmación de transacción
-      `/api/payments/webhook` → actualiza Appointment.transactionHash
-- [ ] **P2 S** Componente `TransactionHistory.tsx`
-      Historial de pagos del usuario (on-chain + DB)
+- [x] **P2 M** Configurar entorno Hardhat para Celo
+      `blockchain/hardhat.config.cjs` con red Celo Sepolia + Mainnet, cuenta de deploy
+- [x] **P2 M** Escribir y desplegar `OrientaProfPayments.sol`
+      `deposit()`, `release()`, `refund()`, `withdraw()`, `getTransaction()`
+      Escrow en CELO nativo (msg.value), comisión 5% (gasFeeBps = 500)
+      Desplegado en Celo Sepolia en `0x25eC8EC72aBDB67b9C24E5838B0063AeB264a54b`
+- [x] **P2 S** Scripts Hardhat
+      `blockchain/scripts/deploy.cjs` — deploy a Sepolia
+      `blockchain/scripts/generate-wallet.cjs` — generar wallet
+      `blockchain/scripts/check-balance.cjs` — verificar balance
+- [x] **P2 M** Integrar WalletConnect en el frontend
+      `components/WalletConnect.tsx` — conexión via window.ethereum (Rabby/MetaMask)
+      Auto-switch a Celo Sepolia, depósito al contrato
+- [x] **P2 L** Integrar pago en flujo de agendamiento
+      Modal "Pagar con CELO" en /appointments con WalletConnect
+      Botones "Solicitar reembolso" / "Solicitar pago" conectados a API release/refund
+      `lib/blockchain.ts` con ethers v6 para llamadas al contrato desde backend
 
 ---
 
@@ -229,16 +207,14 @@ _Objetivo: Calidad y prevención de regresiones._
 
 _Objetivo: MVP desplegado y documentado._
 
-- [ ] **P3 S** Deploy smart contract a Celo Alfajores (testnet)
-- [ ] **P3 S** Verificar contrato en Alfajores block explorer
+- [x] **P3 S** Deploy smart contract a Celo Sepolia (testnet) ✅
+- [ ] **P3 S** Verificar contrato en Celo Sepolia block explorer
 - [ ] **P3 S** Deploy frontend a Vercel (producción + preview)
 - [ ] **P3 S** Configurar dominio personalizado
-- [ ] **P3 S** Base de datos PostgreSQL en producción (Railway / Supabase)
+- [ ] **P3 S** Base de datos PostgreSQL en producción (Neon)
 - [ ] **P3 M** Documentación técnica: README.md actualizado
-- [ ] **P3 M** Documentación de API (auto-generada con JSDoc + typedoc)
 - [ ] **P3 S** Guía de usuario (pantallas y flujos)
 - [ ] **P3 S** Configurar CI/CD (GitHub Actions: lint, typecheck, test, build)
-- [ ] **P3 S** Despedida del prototipo vanilla (archivar `frontend/` legacy)
 
 ---
 
@@ -247,23 +223,24 @@ _Objetivo: MVP desplegado y documentado._
 | Lote | Tareas | Prioridad | Estado |
 |------|--------|-----------|--------|
 | 1 — Fundación | 11 | P0 | `10/11` |
-| 2 — Backend API | 12 | P0 | `6/12` |
-| 3 — Auth y Layout | 8 | P1 | `4/8` |
-| 4 — Dashboards | 8 | P1 | `5/8` |
-| 5 — Mensajes y Citas | 5 | P1 | `0/5` |
+| 2 — Backend API | 10 | P0 | `10/10` |
+| 3 — Auth y Layout | 5 | P1 | `5/5` |
+| 4 — Dashboards | 5 | P1 | `5/5` |
+| 5 — Citas y Videollamadas | 3 | P1 | `3/3` |
 | 6 — Settings | 5 | P2 | `0/5` |
-| 7 — Blockchain CELO | 9 | P2 | `0/9` |
-| 8 — UX | 8 | P2 | `0/8` |
+| 7 — Blockchain CELO | 5 | P2 | `5/5` |
+| 8 — UX | 8 | P2 | `2/8` |
 | 9 — Testing | 7 | P3 | `0/7` |
-| 10 — Deploy y Docs | 10 | P3 | `0/10` |
-| **Total** | **82** | — | **24/82** |
+| 10 — Deploy y Docs | 8 | P3 | `1/8` |
+| **Total** | **67** | — | **41/67** |
 
 ---
 
 ## Notas
 
-- **No iniciar Lote 7** (blockchain) sin completar Lotes 1-2 (backend funcional)
-- Los lotes 3-6 pueden solaparse con el 2 una vez que los endpoints base estén listos
-- El diseño visual y mobile-first del prototipo actual debe preservarse en la migración
-- Los smart contracts deben desplegarse primero en Alfajores (testnet) antes de mainnet
+- Smart contract desplegado en **Celo Sepolia** (no Alfajores, deprecado)
+- CELO nativo usado en vez de cUSD (evita aprobaciones ERC20)
+- WalletConnect via window.ethereum directo (sin RainbowKit/Wagmi)
+- Jitsi via meet.jit.si público (sin self-hosted)
+- `blockchain/` es CommonJS para evitar conflicto ESM con Next.js
 - Toda tarea marcada como completada debe tener su PR asociado y deploy verificado

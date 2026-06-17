@@ -28,7 +28,7 @@ async function main() {
 
   const pro = await prisma.user.upsert({
     where: { email: "abogado@test.com" },
-    update: {},
+    update: { walletAddress: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8" },
     create: {
       email: "abogado@test.com",
       passwordHash,
@@ -39,6 +39,7 @@ async function main() {
       documentNumber: "9876543210",
       country: "Colombia",
       city: "Medellín",
+      walletAddress: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
       professionalProfile: {
         create: {
           profession: "Abogado",
@@ -69,7 +70,7 @@ async function main() {
 
   const doctor = await prisma.user.upsert({
     where: { email: "medico@test.com" },
-    update: {},
+    update: { walletAddress: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC" },
     create: {
       email: "medico@test.com",
       passwordHash,
@@ -80,6 +81,7 @@ async function main() {
       documentNumber: "5555555555",
       country: "Colombia",
       city: "Cali",
+      walletAddress: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
       professionalProfile: {
         create: {
           profession: "Médico",
@@ -108,7 +110,7 @@ async function main() {
 
   const accountant = await prisma.user.upsert({
     where: { email: "contador@test.com" },
-    update: {},
+    update: { walletAddress: "0x90F79bf6EB2c4f870365E785982E1f101E93b906" },
     create: {
       email: "contador@test.com",
       passwordHash,
@@ -119,6 +121,7 @@ async function main() {
       documentNumber: "4444444444",
       country: "Colombia",
       city: "Bogotá",
+      walletAddress: "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
       professionalProfile: {
         create: {
           profession: "Contador",

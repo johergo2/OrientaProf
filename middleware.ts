@@ -1,14 +1,14 @@
 import { auth } from "@/lib/auth"
 import { NextResponse } from "next/server"
 
-const publicRoutes = ["/auth/login", "/auth/register", "/"]
+const publicRoutes = ["/auth/login", "/auth/register"]
 
 export default auth((req) => {
   const { nextUrl } = req
   const isLoggedIn = !!req.auth
-  const isPublicRoute = publicRoutes.some((route) =>
-    nextUrl.pathname.startsWith(route)
-  )
+  const isPublicRoute =
+    nextUrl.pathname === "/" ||
+    publicRoutes.some((route) => nextUrl.pathname.startsWith(route))
   const isApiRoute = nextUrl.pathname.startsWith("/api/")
   const isAuthCallback = nextUrl.pathname.startsWith("/api/auth/")
 

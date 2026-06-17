@@ -1,8 +1,10 @@
 # Especificación del Smart Contract — OrientaProf Payments (MVP)
 
 > **Versión**: 1.0.0 — MVP Demostración Funcional
-> **Red**: Celo (Alfajores testnet → Celo Mainnet)
+> **Red**: Celo Sepolia testnet (contrato desplegado) → Celo Mainnet (futuro)
 > **Token**: CELO nativo (no cUSD — simplifica el MVP al evitar manejo de ERC20 y aprobaciones)
+> **Estado**: ✅ Desplegado en Celo Sepolia — `0x25eC8EC72aBDB67b9C24E5838B0063AeB264a54b`
+> **Owner/Deployer**: `0xBa68cc2e8858BdaA452d4a7f04cfcD9799958095`
 
 ---
 
@@ -812,6 +814,6 @@ describe("OrientaProfPayments", () => {
 
 5. **Sin reputación on-chain**: El contrato `OrientaProfReputation.sol` queda fuera del MVP. Las calificaciones se manejan solo en base de datos.
 
-6. **Hardhat + Alfajores**: El desarrollo y pruebas se hacen con Hardhat contra Celo Alfajores testnet.
+6. **Hardhat + Celo Sepolia**: El desarrollo y pruebas se hacen con Hardhat contra Celo Sepolia testnet (Alfajores fue deprecado en Sept 2025).
 
 7. **Seguridad**: El contrato usa OpenZeppelin `Ownable` para administración. Se recomienda una auditoría profesional antes de mainnet.

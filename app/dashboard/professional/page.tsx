@@ -23,6 +23,34 @@ export default function ProfessionalDashboard() {
   const [filterCategory, setFilterCategory] = useState("")
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [pendingProposals, setPendingProposals] = useState(0)
+  const [appointmentCount, setAppointmentCount] = useState(0)
+  const [walletAddress, setWalletAddress] = useState("")
+  const [walletSaving, setWalletSaving] = useState(false)
+  const [walletMsg, setWalletMsg] = useState("")
+
+  async function handleSaveWallet() {
+    setWalletMsg("")
+    setWalletSaving(true)
+    try {
+      const res = await fetch("/api/user/wallet", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ walletAddress }),
+      })
+      const json = await res.json()
+      if (json.success) {
+        setWalletMsg("Wallet guardada")
+      } else {
+        setWalletMsg(json.error ?? "Error al guardar")
+      }
+    } catch {
+      setWalletMsg("Error de conexión")
+    } finally {
+      setWalletSaving(false)
+    }
+  }
 
   useEffect(() => {
     fetch("/api/requests")
@@ -35,6 +63,37 @@ export default function ProfessionalDashboard() {
         }
       })
       .finally(() => setLoading(false))
+
+    fetch("/api/user/profile")
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success && res.data.walletAddress) {
+          setWalletAddress(res.data.walletAddress)
+        }
+      })
+      .catch(() => {})
+
+    fetch("/api/messages")
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success) {
+          setUnreadCount(res.data.totalUnread ?? 0)
+          setPendingProposals(res.data.pendingProposals ?? 0)
+        }
+      })
+      .catch(() => {})
+
+    fetch("/api/appointments")
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success) {
+          const upcoming = res.data.filter(
+            (a: { status: string }) => !["COMPLETED", "CANCELLED"].includes(a.status)
+          )
+          setAppointmentCount(upcoming.length)
+        }
+      })
+      .catch(() => {})
   }, [])
 
   const filteredRequests = filterCategory
@@ -77,16 +136,21 @@ export default function ProfessionalDashboard() {
             <div className="flex items-center gap-1.5">
               <Link
                 href="/messages"
-                className="w-9 h-9 rounded-full bg-white border border-line grid place-items-center hover:bg-brand-100 transition-colors"
+                className="relative w-9 h-9 rounded-full bg-white border border-line grid place-items-center hover:bg-brand-100 transition-colors"
                 aria-label="Mensajes"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#18312a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                 </svg>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1 shadow-md">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
               </Link>
               <Link
                 href="/appointments"
-                className="w-9 h-9 rounded-full bg-white border border-line grid place-items-center hover:bg-brand-100 transition-colors"
+                className="relative w-9 h-9 rounded-full bg-white border border-line grid place-items-center hover:bg-brand-100 transition-colors"
                 aria-label="Calendario"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#18312a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -95,6 +159,11 @@ export default function ProfessionalDashboard() {
                   <line x1="8" y1="2" x2="8" y2="6" />
                   <line x1="3" y1="10" x2="21" y2="10" />
                 </svg>
+                {(pendingProposals + appointmentCount) > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-amber text-white text-[10px] font-bold flex items-center justify-center px-1 shadow-md">
+                    {(pendingProposals + appointmentCount) > 9 ? "9+" : pendingProposals + appointmentCount}
+                  </span>
+                )}
               </Link>
               <Link
                 href="/settings"
@@ -113,6 +182,28 @@ export default function ProfessionalDashboard() {
             Profesional {username}
           </h1>
         </header>
+
+        <div className="bg-white border border-line rounded-lg p-4 grid gap-3">
+          <h2 className="text-ink text-sm font-bold">Tu Wallet CELO</h2>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={walletAddress}
+              onChange={(e) => { setWalletAddress(e.target.value); setWalletMsg("") }}
+              placeholder="0x..."
+              className="flex-1 border border-line rounded-lg bg-white text-ink p-2 text-xs outline-none focus:border-brand-500"
+            />
+            <button
+              type="button"
+              onClick={handleSaveWallet}
+              disabled={walletSaving}
+              className="bg-brand-700 text-white rounded-lg px-3 py-2 text-xs font-bold cursor-pointer hover:bg-brand-900 transition-colors disabled:opacity-50 whitespace-nowrap"
+            >
+              {walletSaving ? "Guardando..." : "Guardar"}
+            </button>
+          </div>
+          {walletMsg && <p className="text-[11px] text-brand-700">{walletMsg}</p>}
+        </div>
 
         <div className="bg-white border border-line rounded-lg p-4 grid gap-4">
           <h2 className="text-ink text-base font-bold">Consultas Disponibles</h2>

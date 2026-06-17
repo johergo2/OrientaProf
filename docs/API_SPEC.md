@@ -187,11 +187,9 @@ Obtiene la sesión actual.
 
 ## 3. Endpoints de Usuarios
 
-### `GET /api/users/me`
+### `GET /api/user/profile`
 
-Obtiene el perfil del usuario autenticado, incluyendo perfil profesional si aplica.
-
-**Headers**: `Authorization: Bearer <session>`
+Obtiene el perfil del usuario autenticado.
 
 **Response `200`**:
 ```json
@@ -203,43 +201,12 @@ Obtiene el perfil del usuario autenticado, incluyendo perfil profesional si apli
     "email": "user@example.com",
     "role": "PROFESSIONAL",
     "fullName": "Laura Usuario01",
-    "documentType": "CC",
-    "documentNumber": "1020304050",
-    "gender": "Femenino",
-    "country": "Colombia",
-    "city": "Bogotá",
-    "dateOfBirth": "1992-05-18",
-    "address": "Calle 10 # 20-30",
-    "walletAddress": "0x...",
-    "professionalProfile": {
-      "id": "clx...",
-      "profession": "Abogado",
-      "ratePerMinute": 1200,
-      "rating": 4.9,
-      "experienceYears": 4,
-      "description": "Especialista en derecho laboral...",
-      "categories": ["Derecho laboral", "Conciliaciones"]
-    },
-    "bankInfo": {
-      "country": "Colombia",
-      "bankName": "Banco Ejemplo",
-      "accountType": "Ahorros",
-      "accountNumber": "1234567890",
-      "accountHolder": "Laura Usuario01"
-    }
+    "walletAddress": "0x..."
   }
 }
 ```
 
-### `PUT /api/users/me`
-
-Actualiza el perfil del usuario autenticado.
-
-**Request body**: Campos parciales del User + ProfessionalProfile + BankInfo.
-
-**Response `200`**: Perfil actualizado.
-
-### `PUT /api/users/me/wallet`
+### `PATCH /api/user/wallet`
 
 Actualiza la dirección de wallet CELO del usuario autenticado.
 
@@ -255,29 +222,9 @@ Actualiza la dirección de wallet CELO del usuario autenticado.
 {
   "success": true,
   "data": {
-    "message": "Wallet actualizada correctamente",
+    "id": "clx...",
     "walletAddress": "0x..."
   }
-}
-```
-
-### `PUT /api/users/me/password`
-
-Cambia la contraseña del usuario autenticado.
-
-**Request body**:
-```json
-{
-  "currentPassword": "string",
-  "newPassword": "string (min 8 chars)"
-}
-```
-
-**Response `200`**:
-```json
-{
-  "success": true,
-  "data": { "message": "Contraseña actualizada" }
 }
 ```
 
@@ -566,7 +513,7 @@ Envía un mensaje.
 
 ### `POST /api/appointments`
 
-Agenda una nueva videollamada (solo CLIENT).
+Agenda una nueva videollamada (CLIENT o PROFESSIONAL).
 
 **Request body**:
 ```json
@@ -581,7 +528,7 @@ Agenda una nueva videollamada (solo CLIENT).
 **Reglas**:
 - `durationMinutes` debe ser 10, 15, 20 o 30
 - `scheduledAt` debe ser una fecha futura
-- Ambos usuarios deben tener `walletAddress` registrada
+- Si `requestId` se provee, solo participantes de la consulta pueden agendar
 
 **Response `201`**:
 ```json
@@ -589,24 +536,19 @@ Agenda una nueva videollamada (solo CLIENT).
   "success": true,
   "data": {
     "id": "clx...",
-    "client": { "id": "clx...", "fullName": "Andrea Usuario01" },
-    "professional": { "id": "clx...", "fullName": "Laura Usuario01" },
     "scheduledAt": "2026-06-15T16:00:00Z",
     "durationMinutes": 20,
     "totalCost": 24000,
     "status": "SCHEDULED",
-    "videoRoomUrl": null
+    "client": { "id": "clx...", "fullName": "Andrea Usuario01" },
+    "professional": { "id": "clx...", "fullName": "Laura Usuario01" }
   }
 }
 ```
 
-**Nota**: El `videoRoomUrl` se genera cuando ambos confirman asistencia.
-
 ### `GET /api/appointments`
 
 Lista citas del usuario autenticado.
-
-**Query params**: `?status=SCHEDULED&page=1&pageSize=20`
 
 **Response `200`**:
 ```json
@@ -615,15 +557,17 @@ Lista citas del usuario autenticado.
   "data": [
     {
       "id": "clx...",
-      "professional": { "id": "clx...", "fullName": "Laura Usuario01" },
       "scheduledAt": "2026-06-15T16:00:00Z",
       "durationMinutes": 20,
+      "totalCost": 24000,
       "status": "SCHEDULED",
-      "videoRoomUrl": null,
-      "totalCost": 24000
+      "clientConfirmed": false,
+      "professionalConfirmed": false,
+      "client": { "id": "clx...", "fullName": "Andrea Usuario01", "walletAddress": "0x..." },
+      "professional": { "id": "clx...", "fullName": "Laura Usuario01", "walletAddress": "0x..." },
+      "request": { "id": "clx...", "title": "Revisión de liquidación" }
     }
-  ],
-  "meta": { "page": 1, "pageSize": 20, "total": 3 }
+  ]
 }
 ```
 
@@ -631,71 +575,33 @@ Lista citas del usuario autenticado.
 
 Obtiene detalle de una cita.
 
-**Response `200`**: Cita completa con datos de ambas partes, sala, costos y estado.
+**Response `200`**: Cita completa con datos de ambas partes (incluyendo walletAddress) y estado de confirmación.
 
-### `POST /api/appointments/:id/confirm`
+### `POST /api/appointments/:id/join`
 
-Confirma asistencia a una cita (ambos roles).
+Confirma entrada a la videollamada de un participante (ambos roles).
 
-**Request body**:
-```json
-{
-  "confirmed": true
-}
-```
-
-**Efectos**:
-- Crea/actualiza `AttendanceConfirmation` para el usuario
-- Si ambos confirmaron → `Appointment.status = CONFIRMED_BOTH`
-- Se genera `videoRoomUrl` (sala Jitsi Meet)
+**Reglas**:
+- Solo se puede join si la cita no está CANCELLED ni COMPLETED
+- Solo se puede join dentro de la ventana: 1h antes de `scheduledAt` hasta el fin de la cita
+- Marca `clientConfirmed` o `professionalConfirmed` según quién llama
+- Cuando ambos confirman → `status = COMPLETED`
 
 **Response `200`**:
 ```json
 {
   "success": true,
   "data": {
-    "status": "CONFIRMED_BOTH",
-    "videoRoomUrl": "https://meet.jit.si/OrientaProf-clx..."
-  }
-}
-```
-
-### `POST /api/appointments/:id/start`
-
-Marca la cita como en progreso (llamado al iniciar videollamada).
-
-**Response `200`**:
-```json
-{
-  "success": true,
-  "data": { "status": "IN_PROGRESS" }
-}
-```
-
-### `POST /api/appointments/:id/complete`
-
-Marca la cita como completada (llamado al finalizar videollamada).
-
-**Efectos**:
-- `Appointment.status = COMPLETED`
-- Backend llama `contract.release(escrowIndex)` para liberar fondos
-- `EscrowTransaction.status = LIBERADA`
-
-**Response `200`**:
-```json
-{
-  "success": true,
-  "data": {
-    "status": "COMPLETED",
-    "escrowReleased": true,
-    "releaseTxHash": "0x..."
+    "clientConfirmed": true,
+    "professionalConfirmed": false,
+    "status": "SCHEDULED"
   }
 }
 ```
 
 ### `POST /api/appointments/:id/cancel`
 
-Cancela una cita (cualquier parte).
+Cancela una cita (cualquier parte, solo si `scheduledAt > now`).
 
 **Response `200`**:
 ```json
@@ -705,32 +611,52 @@ Cancela una cita (cualquier parte).
 }
 ```
 
-**Efectos sobre escrow**:
-- Si había depósito en escrow → Backend llama `contract.refund()` (reembolso al cliente menos gas fee)
-- `EscrowTransaction.status = REEMBOLSADA`
-
-### `POST /api/appointments/:id/missed`
-
-Marca una cita como no realizada por inasistencia de una parte.
-
-**Request body**:
-```json
-{
-  "absentParty": "CLIENT | PROFESSIONAL"
-}
-```
-
-**Efectos**:
-- Si el ausente es el profesional → `refund()` (reembolso al cliente)
-- Si el ausente es el cliente → `release()` (liberación al profesional con descuento gas fee)
+**Nota**: El escrow no se maneja automáticamente al cancelar — el usuario debe solicitar reembolso via `/api/payments/refund` si hay depósito.
 
 ---
 
 ## 7. Endpoints de Pagos (Blockchain CELO)
 
-### `POST /api/payments/prepare`
+### `POST /api/payments/deposit`
 
-Prepara la información necesaria para que el frontend firme el depósito en el contrato.
+Registra un depósito en escrow para una cita (llamado por el frontend tras firma on-chain exitosa).
+
+**Request body**:
+```json
+{
+  "appointmentId": "string",
+  "depositTxHash": "string (0x...)",
+  "clientAddress": "string (0x...)",
+  "professionalAddress": "string (0x...)",
+  "amount": "number (en CELO, ej: 0.001)"
+}
+```
+
+**Efectos**:
+- Consulta `transactionCounter` on-chain
+- Crea `EscrowTransaction` con estado PENDIENTE
+- Previene depósitos duplicados para la misma cita
+
+**Response `201`**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "clx...",
+    "appointmentId": "clx...",
+    "transactionIndex": 0,
+    "clientAddress": "0x...",
+    "professionalAddress": "0x...",
+    "amount": 0.001,
+    "status": "PENDIENTE",
+    "depositTxHash": "0x..."
+  }
+}
+```
+
+### `POST /api/payments/release`
+
+**Llamado por el profesional** para liberar fondos del escrow.
 
 **Request body**:
 ```json
@@ -739,54 +665,54 @@ Prepara la información necesaria para que el frontend firme el depósito en el 
 }
 ```
 
+**Efectos**:
+- Solo el `professionalId` de la cita puede llamar
+- Verifica que exista un EscrowTransaction en estado PENDIENTE
+- Llama `OrientaProfPayments.release(transactionIndex)` en el contrato
+- Actualiza `EscrowTransaction.status = LIBERADA`
+
 **Response `200`**:
 ```json
 {
   "success": true,
   "data": {
-    "appointmentId": "clx...",
-    "contractAddress": "0x...",
-    "professionalWallet": "0x...",
-    "amount": "24000000000000000000000",  // 24 CELO en wei
-    "amountDecimal": 24,
-    "consultationId": "clx..."
+    "txHash": "0x...",
+    "status": "LIBERADA"
   }
 }
 ```
 
-### `POST /api/payments/confirm`
+### `POST /api/payments/refund`
 
-Confirma que el depósito on-chain se realizó (el frontend envía el hash).
+**Llamado por el cliente** para reembolsar fondos del escrow.
 
 **Request body**:
 ```json
 {
-  "appointmentId": "string",
-  "transactionHash": "string (0x...)"
+  "appointmentId": "string"
 }
 ```
+
+**Efectos**:
+- Solo el `clientId` de la cita puede llamar
+- Verifica que exista un EscrowTransaction en estado PENDIENTE
+- Llama `OrientaProfPayments.refund(transactionIndex)` en el contrato
+- Actualiza `EscrowTransaction.status = REEMBOLSADA`
 
 **Response `200`**:
 ```json
 {
   "success": true,
   "data": {
-    "status": "PENDING",
-    "transactionHash": "0x..."
+    "txHash": "0x...",
+    "status": "REEMBOLSADA"
   }
 }
 ```
 
-**Efectos**:
-- Crea `EscrowTransaction` con estado PENDIENTE
-- Crea `PaymentTransaction` con el hash de la tx
-- Escucha confirmación de la red (1 bloque en Alfajores)
-
 ### `GET /api/payments/transactions`
 
-Historial de transacciones del usuario autenticado.
-
-**Query params**: `?role=payer|payee&page=1&pageSize=20`
+Historial de transacciones escrow del usuario autenticado.
 
 **Response `200`**:
 ```json
@@ -796,219 +722,63 @@ Historial de transacciones del usuario autenticado.
     {
       "id": "clx...",
       "appointmentId": "clx...",
-      "amount": 24,
-      "token": "CELO",
-      "status": "CONFIRMED",
-      "transactionHash": "0x...",
-      "description": "Depósito escrow",
+      "transactionIndex": 0,
+      "amount": 0.001,
+      "status": "PENDIENTE",
+      "depositTxHash": "0x...",
+      "appointment": {
+        "id": "clx...",
+        "scheduledAt": "...",
+        "status": "SCHEDULED"
+      },
       "createdAt": "2026-06-14T10:00:00Z"
     }
   ]
 }
 ```
 
-### `POST /api/payments/release`
+---
 
-**Backend interno**. Autoriza la liberación de fondos del escrow al profesional.
+## 8. Reschedule (en frontend)
 
-**Headers**: `X-API-Key: <backend-api-key>`
-
-**Request body**:
-```json
-{
-  "appointmentId": "string"
-}
-```
-
-**Efectos**:
-- Verifica que la cita esté COMPLETED
-- Llama `OrientaProfPayments.release(contractIndex)` en el contrato
-- Actualiza `EscrowTransaction.status = LIBERADA`
-
-### `POST /api/payments/refund`
-
-**Backend interno**. Autoriza el reembolso al cliente.
-
-**Headers**: `X-API-Key: <backend-api-key>`
-
-**Request body**:
-```json
-{
-  "appointmentId": "string"
-}
-```
-
-**Efectos**:
-- Verifica que la cita esté CANCELLED o MISSED
-- Llama `OrientaProfPayments.refund(contractIndex)` en el contrato
-- Actualiza `EscrowTransaction.status = REEMBOLSADA`
-
-### `POST /api/payments/webhook`
-
-**Webhook**. Recibe eventos del contrato inteligente.
-
-**Headers**: `X-Webhook-Secret: <secret>`
-
-**Eventos manejados**:
-- `TransactionCreated`: Confirmar que el depósito se registró on-chain
-- `TransactionReleased`: Actualizar EscrowTransaction a LIBERADA
-- `TransactionRefunded`: Actualizar EscrowTransaction a REEMBOLSADA
-- `FundsWithdrawn`: Actualizar EscrowTransaction con withdrawTxHash
-
-**Response `200`**:
-```json
-{
-  "success": true
-}
-```
+El reagendamiento se maneja del lado del frontend. Cualquier participante (cliente o profesional) puede crear una nueva cita con el mismo profesional/cliente usando `POST /api/appointments` sin necesidad de un endpoint de reschedule dedicado. La cita anterior debe cancelarse si es necesario.
 
 ---
 
-## 8. Endpoints de Configuración (Settings)
+## 9. Videollamada (Jitsi Meet)
 
-### `GET /api/settings/profile`
-
-Obtiene datos personales completos del usuario autenticado.
-
-**Response `200`**: Datos de User + ProfessionalProfile (si aplica).
-
-### `PUT /api/settings/profile`
-
-Actualiza datos personales.
-
-**Request body**: Campos editables del perfil.
-
-```json
-{
-  "fullName": "string",
-  "documentType": "string",
-  "documentNumber": "string",
-  "gender": "string",
-  "country": "string",
-  "city": "string",
-  "dateOfBirth": "string",
-  "address": "string",
-  "profession": "string (solo prof)",
-  "description": "string (solo prof)",
-  "categories": ["string (solo prof)"]
-}
-```
-
-### `PUT /api/settings/password`
-
-Cambia la contraseña.
-
-**Request body**:
-```json
-{
-  "currentPassword": "string",
-  "newPassword": "string (min 8 chars)"
-}
-```
-
-### `GET /api/settings/payment`
-
-Obtiene información bancaria (solo PROFESSIONAL).
-
-**Response `200`**: BankInfo del profesional.
-
-### `PUT /api/settings/payment`
-
-Actualiza información bancaria.
-
-**Request body**:
-```json
-{
-  "country": "string",
-  "bankName": "string",
-  "accountType": "AHORROS | CORRIENTE",
-  "accountNumber": "string",
-  "accountHolder": "string"
-}
-```
-
-### `PUT /api/settings/rate`
-
-Actualiza tarifa profesional (solo PROFESSIONAL). Mismo que `PUT /api/professionals/rate`.
-
----
-
-## 9. Endpoints de Videollamada
-
-### `GET /api/consultation/:appointmentId/token`
-
-Genera un token JWT para acceder a la sala Jitsi Meet (solo participantes de la cita).
-
-**Response `200`**:
-```json
-{
-  "success": true,
-  "data": {
-    "roomUrl": "https://meet.jit.si/OrientaProf-clx...",
-    "token": "jwt-token..."
-  }
-}
-```
-
-### `POST /api/consultation/:appointmentId/status`
-
-Notifica cambios de estado durante la videollamada.
-
-**Request body**:
-```json
-{
-  "status": "IN_PROGRESS | COMPLETED"
-}
-```
+La sala de videollamada se accede via frontend en `/appointments/[id]/room`. No hay endpoints REST dedicados — el nombre de sala Jitsi se deriva del ID de la cita (`OrientaProf-{appointmentId}`) y se embebe via iframe apuntando a `meet.jit.si`. El estado de la videollamada se maneja mediante `POST /api/appointments/[id]/join` (ver sección 6).
 
 ---
 
 ## 10. Resumen de Endpoints
 
-| Método | Ruta | Rol | Propósito |
-|--------|------|-----|-----------|
-| `POST` | `/api/auth/register` | — | Registro de usuario |
-| `POST` | `/api/auth/login` | — | Inicio de sesión |
-| `POST` | `/api/auth/logout` | Cualquiera | Cerrar sesión |
-| `GET` | `/api/auth/session` | Cualquiera | Sesión actual |
-| `GET` | `/api/users/me` | Cualquiera | Perfil propio |
-| `PUT` | `/api/users/me` | Cualquiera | Actualizar perfil |
-| `PUT` | `/api/users/me/wallet` | Cualquiera | Actualizar wallet CELO |
-| `PUT` | `/api/users/me/password` | Cualquiera | Cambiar contraseña |
-| `GET` | `/api/professionals` | Cualquiera | Listar profesionales |
-| `GET` | `/api/professionals/:id` | Cualquiera | Perfil profesional |
-| `PUT` | `/api/professionals/rate` | PROFESSIONAL | Actualizar tarifa |
-| `POST` | `/api/requests` | CLIENT | Crear consulta ✅ |
-| `GET` | `/api/requests` | Ambos | Listar consultas ✅ |
-| `GET` | `/api/requests/:id` | Ambos | Detalle consulta ✅ |
-| `PUT` | `/api/requests/:id` | CLIENT | Editar consulta |
-| `DELETE` | `/api/requests/:id` | CLIENT | Eliminar consulta |
-| `POST` | `/api/requests/:id` | PROFESSIONAL | Responder consulta ✅ |
-| `POST` | `/api/requests/:id/cancel` | CLIENT | Cancelar consulta |
-| `GET` | `/api/messages` | Cualquiera | Bandeja de mensajes |
-| `POST` | `/api/messages` | Cualquiera | Enviar mensaje |
-| `POST` | `/api/appointments` | CLIENT | Agendar cita |
-| `GET` | `/api/appointments` | Cualquiera | Listar citas |
-| `GET` | `/api/appointments/:id` | Cualquiera | Detalle cita |
-| `POST` | `/api/appointments/:id/confirm` | Ambos | Confirmar asistencia |
-| `POST` | `/api/appointments/:id/start` | Ambos | Iniciar videollamada |
-| `POST` | `/api/appointments/:id/complete` | Ambos | Finalizar videollamada |
-| `POST` | `/api/appointments/:id/cancel` | Ambos | Cancelar cita |
-| `POST` | `/api/appointments/:id/missed` | Ambos | Reportar inasistencia |
-| `POST` | `/api/payments/prepare` | CLIENT | Preparar depósito escrow |
-| `POST` | `/api/payments/confirm` | CLIENT | Confirmar depósito |
-| `GET` | `/api/payments/transactions` | Cualquiera | Historial de pagos |
-| `POST` | `/api/payments/release` | Backend | Liberar fondos escrow |
-| `POST` | `/api/payments/refund` | Backend | Reembolsar fondos |
-| `POST` | `/api/payments/webhook` | Contrato | Eventos on-chain |
-| `GET` | `/api/settings/profile` | Cualquiera | Datos personales |
-| `PUT` | `/api/settings/profile` | Cualquiera | Actualizar datos |
-| `PUT` | `/api/settings/password` | Cualquiera | Cambiar contraseña |
-| `GET` | `/api/settings/payment` | PROFESSIONAL | Info bancaria |
-| `PUT` | `/api/settings/payment` | PROFESSIONAL | Actualizar info bancaria |
-| `PUT` | `/api/settings/rate` | PROFESSIONAL | Actualizar tarifa |
-| `GET` | `/api/consultation/:id/token` | Ambos | Token sala Jitsi |
-| `POST` | `/api/consultation/:id/status` | Ambos | Estado videollamada |
+| Método | Ruta | Rol | Propósito | Estado |
+|--------|------|-----|-----------|--------|
+| `POST` | `/api/auth/register` | — | Registro de usuario | ✅ |
+| `POST` | `/api/auth/login` | — | Inicio de sesión | ✅ |
+| `POST` | `/api/auth/logout` | Cualquiera | Cerrar sesión | ✅ |
+| `GET` | `/api/auth/session` | Cualquiera | Sesión actual | ✅ |
+| `GET` | `/api/user/profile` | Cualquiera | Perfil propio | ✅ |
+| `PATCH` | `/api/user/wallet` | Cualquiera | Actualizar wallet CELO | ✅ |
+| `GET` | `/api/professionals` | Cualquiera | Listar profesionales | ✅ |
+| `GET` | `/api/professionals/:id` | Cualquiera | Perfil profesional | — |
+| `POST` | `/api/requests` | CLIENT | Crear consulta | ✅ |
+| `GET` | `/api/requests` | Ambos | Listar consultas | ✅ |
+| `GET` | `/api/requests/:id` | Ambos | Detalle consulta | ✅ |
+| `POST` | `/api/requests/:id` | PROFESSIONAL | Responder consulta | ✅ |
+| `POST` | `/api/requests/:id/cancel` | CLIENT | Cancelar consulta | ✅ |
+| `GET` | `/api/messages` | Cualquiera | Bandeja de mensajes | ✅ |
+| `POST` | `/api/messages` | Cualquiera | Enviar mensaje | ✅ |
+| `POST` | `/api/appointments` | Ambos | Agendar cita | ✅ |
+| `GET` | `/api/appointments` | Cualquiera | Listar citas | ✅ |
+| `GET` | `/api/appointments/:id` | Cualquiera | Detalle cita | ✅ |
+| `POST` | `/api/appointments/:id/join` | Ambos | Ingresar a videollamada | ✅ |
+| `POST` | `/api/appointments/:id/cancel` | Ambos | Cancelar cita | ✅ |
+| `POST` | `/api/payments/deposit` | CLIENT | Registrar depósito escrow | ✅ |
+| `POST` | `/api/payments/release` | PROFESSIONAL | Liberar fondos escrow | ✅ |
+| `POST` | `/api/payments/refund` | CLIENT | Reembolsar fondos | ✅ |
+| `GET` | `/api/payments/transactions` | Cualquiera | Historial transacciones escrow | ✅ |
 
 ---
 
@@ -1042,10 +812,6 @@ Request → NextAuth.js Middleware → ¿JWT válido?
             └── Sí → Pasa al handler
 ```
 
-### Webhooks
+### Pagos release/refund
 
-Los webhooks del contrato se autentican mediante `X-Webhook-Secret` (preconfigurado en el backend y en el script de deploy del contrato).
-
-### Backend interno
-
-Las rutas `/api/payments/release` y `/api/payments/refund` se autentican mediante `X-API-Key` (solo el backend conoce esta clave).
+Las rutas `/api/payments/release` y `/api/payments/refund` se autentican por sesión de usuario y verifican que el llamante sea el participante correspondiente de la cita (professionalId para release, clientId para refund). No se usan API keys internas.
