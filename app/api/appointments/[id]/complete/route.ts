@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
+import { ethers } from "ethers"
 import { successResponse, unauthorizedResponse, serverErrorResponse, notFoundResponse, errorResponse } from "@/lib/api-response"
 
 export async function POST(
@@ -64,6 +65,39 @@ export async function POST(
         completedAt: true,
       },
     })
+
+    const escrow = await prisma.escrowTransaction.findUnique({
+      where: { appointmentId: id },
+      select: { amount: true },
+    })
+
+    if (escrow?.amount) {
+      try {
+        const CELO_RATE = 0.00001
+        const PROFESSIONAL_FEE = 0.95
+        const celoAmount = (escrow.amount * CELO_RATE * PROFESSIONAL_FEE).toFixed(6)
+        const pk = process.env.CELO_PRIVATE_KEY
+        const rpc = process.env.CELO_RPC_URL || "https://forno.celo-sepolia.celo-testnet.org"
+        if (pk) {
+          const provider = new ethers.JsonRpcProvider(rpc)
+          const signer = new ethers.Wallet(pk, provider)
+          const professional = await prisma.user.findUnique({
+            where: { id: appointment.professionalId },
+            select: { walletAddress: true },
+          })
+          if (professional?.walletAddress) {
+            const tx = await signer.sendTransaction({
+              to: professional.walletAddress,
+              value: ethers.parseEther(celoAmount),
+            })
+            const receipt = await tx.wait()
+            console.log("complete: transferencia CELO al profesional", { to: professional.walletAddress, amount: celoAmount, txHash: receipt.hash })
+          }
+        }
+      } catch (err) {
+        console.error("complete: error en transferencia CELO", err)
+      }
+    }
 
     return successResponse(updated)
   } catch (error) {
