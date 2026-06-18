@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
-import WalletConnect from "@/components/WalletConnect"
 
 const DURATIONS = [10, 15, 20, 30] as const
 
@@ -19,6 +18,7 @@ type Appointment = {
   client: { id: string; username: string; fullName: string; walletAddress: string | null }
   professional: { id: string; username: string; fullName: string; walletAddress: string | null }
   request: { id: string; title: string } | null
+  paymentProcessed?: boolean
 }
 
 const CELO_RATE = 0.00001
@@ -55,7 +55,6 @@ export default function AppointmentsPage() {
   const [rsSending, setRsSending] = useState(false)
   const [rsError, setRsError] = useState("")
 
-  const [paymentTarget, setPaymentTarget] = useState<Appointment | null>(null)
   const [processingPayment, setProcessingPayment] = useState(false)
   const [paymentError, setPaymentError] = useState("")
 
@@ -374,7 +373,7 @@ export default function AppointmentsPage() {
                         <line x1="12" y1="1" x2="12" y2="23" />
                         <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                       </svg>
-                      <span>{formatCost(a.totalCost)}</span>
+                      <span>{formatCost(a.totalCost)} ({costToCelo(a.totalCost)} CELO)</span>
                     </div>
                   </div>
 
@@ -484,7 +483,7 @@ export default function AppointmentsPage() {
                       </button>
                     )}
 
-                    {isClient && isAppActive(a) && (
+                    {isClient && isAppActive(a) && !a.paymentProcessed && (
                       <button
                         type="button"
                         onClick={() => setPaymentTarget(a)}
@@ -554,37 +553,6 @@ export default function AppointmentsPage() {
         </div>
       )}
 
-      {paymentTarget && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-5">
-          <div className="w-full max-w-[380px] bg-white rounded-[20px] p-5 grid gap-4 shadow-2xl">
-            <h3 className="text-ink text-base font-bold text-center">Pago con CELO</h3>
-
-            <p className="text-xs text-muted text-center">
-              Monto: {formatCost(paymentTarget.totalCost)}{" "}
-              ({costToCelo(paymentTarget.totalCost)} CELO)
-            </p>
-
-            <WalletConnect
-              appointmentId={paymentTarget.id}
-              consultationId={paymentTarget.request?.id ?? paymentTarget.id}
-              professionalWallet={paymentTarget.professional.walletAddress ?? ""}
-              amountInCelo={costToCelo(paymentTarget.totalCost)}
-              onDepositComplete={() => {
-                alert("Depósito exitoso")
-                setPaymentTarget(null)
-              }}
-            />
-
-            <button
-              type="button"
-              onClick={() => { setPaymentTarget(null); setPaymentError("") }}
-              className="w-full border border-line text-muted rounded-lg py-2.5 text-sm font-bold cursor-pointer hover:bg-brand-100 transition-colors"
-            >
-              Cerrar
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

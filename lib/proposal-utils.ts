@@ -5,17 +5,24 @@ export interface ProposalData {
 }
 
 export function formatProposalMessage(data: ProposalData): string {
+  const fDate = (iso: string) => {
+    const d = new Date(iso)
+    return d.toLocaleDateString("es-CO", {
+      weekday: "short", day: "numeric", month: "short",
+      hour: "2-digit", minute: "2-digit",
+    })
+  }
   return [
-    "📅 Propuesta de agendamiento",
-    `Opción 1: ${data.option1}`,
-    `Opción 2: ${data.option2}`,
+    "Propuesta de agendamiento",
+    `Opción 1: ${fDate(data.option1)}`,
+    `Opción 2: ${fDate(data.option2)}`,
     `Duración: ${data.duration} min`,
   ].join("\n")
 }
 
 export function parseProposalMessage(content: string): ProposalData | null {
   const lines = content.split("\n")
-  if (lines.length < 4 || !lines[0].startsWith("📅 Propuesta de agendamiento")) return null
+  if (lines.length < 4 || !lines[0].startsWith("Propuesta de agendamiento")) return null
 
   const opt1Match = lines.find((l) => l.startsWith("Opción 1:"))?.match(/^Opción 1:\s*(.+)$/)
   const opt2Match = lines.find((l) => l.startsWith("Opción 2:"))?.match(/^Opción 2:\s*(.+)$/)
@@ -23,11 +30,25 @@ export function parseProposalMessage(content: string): ProposalData | null {
 
   if (!opt1Match || !opt2Match || !durMatch) return null
 
-  const option1 = opt1Match[1].trim()
-  const option2 = opt2Match[1].trim()
-  const duration = parseInt(durMatch[1], 10)
+  return {
+    option1: opt1Match[1].trim(),
+    option2: opt2Match[1].trim(),
+    duration: parseInt(durMatch[1], 10),
+  }
+}
 
-  if (isNaN(duration)) return null
+export function formatAcceptanceMessage(selectedOption: string, date: string): string {
+  return [
+    "Aceptación de propuesta",
+    `Opción seleccionada: ${selectedOption === "option1" ? "Opción 1" : "Opción 2"}`,
+    `Fecha: ${date}`,
+  ].join("\n")
+}
 
-  return { option1, option2, duration }
+export function isProposalMessage(content: string): boolean {
+  return content.startsWith("Propuesta de agendamiento")
+}
+
+export function isAcceptanceMessage(content: string): boolean {
+  return content.startsWith("Aceptación de propuesta")
 }

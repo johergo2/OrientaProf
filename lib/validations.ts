@@ -1,5 +1,7 @@
 import { z } from "zod"
 
+export const MESSAGE_TYPES = ["REGULAR", "PROPOSAL", "COUNTER_PROPOSAL", "ACCEPTANCE"] as const
+
 export const registerClientSchema = z.object({
   email: z.string().email("Email inválido"),
   password: z.string().min(8, "Mínimo 8 caracteres"),
@@ -38,10 +40,21 @@ export const requestSchema = z.object({
   professionalId: z.string().optional(),
 })
 
+export const proposalDataSchema = z.object({
+  option1: z.string().min(1, "Opción 1 requerida"),
+  option2: z.string().min(1, "Opción 2 requerida"),
+  duration: z.coerce.number().refine(
+    (val) => [10, 15, 20, 30].includes(val),
+    "Duración debe ser 10, 15, 20 o 30 minutos"
+  ),
+})
+
 export const messageSchema = z.object({
   requestId: z.string().optional(),
   receiverId: z.string().min(1, "Destinatario requerido"),
   content: z.string().min(1, "Mensaje vacío").max(2000),
+  messageType: z.enum(MESSAGE_TYPES).optional(),
+  structuredData: proposalDataSchema.optional(),
 })
 
 export const appointmentSchema = z.object({
@@ -67,9 +80,16 @@ export const professionalRateSchema = z.object({
   ratePerMinute: z.coerce.number().min(750).max(1500, "Tarifa debe ser entre 750 y 1500 COP"),
 })
 
+export const acceptProposalSchema = z.object({
+  proposalMessageId: z.string().min(1),
+  selectedOption: z.enum(["option1", "option2"]),
+})
+
 export type RegisterClientInput = z.infer<typeof registerClientSchema>
 export type RegisterProfessionalInput = z.infer<typeof registerProfessionalSchema>
 export type LoginInput = z.infer<typeof loginSchema>
 export type RequestInput = z.infer<typeof requestSchema>
+export type ProposalDataInput = z.infer<typeof proposalDataSchema>
 export type MessageInput = z.infer<typeof messageSchema>
 export type AppointmentInput = z.infer<typeof appointmentSchema>
+export type AcceptProposalInput = z.infer<typeof acceptProposalSchema>

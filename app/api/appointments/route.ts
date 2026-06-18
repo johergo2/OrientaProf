@@ -3,18 +3,21 @@ import { auth } from "@/lib/auth"
 import { appointmentSchema } from "@/lib/validations"
 import { successResponse, unauthorizedResponse, validationErrorResponse, serverErrorResponse, notFoundResponse, errorResponse } from "@/lib/api-response"
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const session = await auth()
     if (!session?.user?.id) return unauthorizedResponse()
 
     const userId = session.user.id
     const role = session.user.role
+    const url = new URL(req.url)
+    const requestIdFilter = url.searchParams.get("requestId")
 
-    const where =
+    let where: any =
       role === "PROFESSIONAL"
         ? { professionalId: userId }
         : { clientId: userId }
+    if (requestIdFilter) where.requestId = requestIdFilter
 
     const appointments = await prisma.appointment.findMany({
       where,
@@ -31,10 +34,16 @@ export async function GET() {
         client: { select: { id: true, username: true, fullName: true, walletAddress: true } },
         professional: { select: { id: true, username: true, fullName: true, walletAddress: true } },
         request: { select: { id: true, title: true } },
+        escrowTransaction: { select: { id: true } },
       },
     })
 
-    return successResponse(appointments)
+    const result = appointments.map(({ escrowTransaction, ...a }) => ({
+      ...a,
+      paymentProcessed: escrowTransaction !== null,
+    }))
+
+    return successResponse(result)
   } catch (error) {
     console.error("Error fetching appointments:", error)
     return serverErrorResponse("Error al obtener citas")

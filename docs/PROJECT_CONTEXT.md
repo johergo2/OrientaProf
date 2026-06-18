@@ -82,65 +82,58 @@ Pagos descentralizados con CELO nativo mediante escrow inteligente, garantizando
 
 | Capa | Tecnología | Propósito |
 |------|-----------|-----------|
-| **Frontend** | Next.js 14+ (App Router) + TypeScript | SSR, SPA, enrutamiento, API Routes |
-| **Estilos** | Tailwind CSS | Sistema utility-first, responsive mobile-first |
-| **Estado** | Zustand | Estado global liviano del lado cliente |
-| **Fetching** | TanStack Query (React Query) | Caché, sincronización, mutaciones |
-| **Formularios** | React Hook Form + Zod | Validación tipada cliente/servidor |
-| **Auth** | NextAuth.js (JWT) | Autenticación con sesiones y roles |
+| **Frontend** | Next.js 16 (App Router) + TypeScript | SSR, SPA, enrutamiento, API Routes |
+| **Estilos** | Tailwind CSS v4 | Sistema utility-first, responsive mobile-first |
+| **Auth** | NextAuth.js v5 (JWT, credentials) | Autenticación con sesiones y roles |
 | **Backend** | Next.js API Routes | API RESTful unificada con el frontend |
-| **ORM** | Prisma | Tipado seguro de base de datos |
-| **Base de datos** | PostgreSQL | Datos relacionales del negocio |
+| **ORM** | Prisma v5 | Tipado seguro de base de datos (11 modelos) |
+| **Base de datos** | PostgreSQL (Supabase) | Datos relacionales del negocio |
 | **Video** | Jitsi Meet vía iframe (`meet.jit.si` — requiere autenticación) | Videollamadas: `meet.jit.si` exige login desde ago 2023 |
-| **Smart Contracts** | Solidity + Hardhat | Lógica de pagos on-chain |
-| **Blockchain** | Celo (Sepolia → Mainnet) | Pagos con CELO nativo, transparencia. Tasa MVP: 1 COP = 0.00001 CELO |
+| **Smart Contracts** | Solidity 0.8.20 + OpenZeppelin Ownable | Escrow en CELO nativo |
+| **Blockchain** | Celo (Sepolia → Mainnet) | Pagos con CELO nativo. Tasa MVP: 1 COP = 0.00001 CELO |
 | **Wallet** | WalletConnect via `window.ethereum` (Rabby/MetaMask) | Conexión directa sin dependencias externas |
 | **Ethers** | ethers v6 | Interacción con contratos desde backend (JsonRpcProvider + Wallet) |
-| **Testing** | Vitest + Playwright | Tests unitarios y de integración |
+| **Hardhat** | Hardhat (CommonJS) | Deploy y scripts blockchain |
+| **Formularios** | Zod | Schemas de validación compartidos |
 | **Deploy** | Vercel (frontend) + Supabase (DB) + Celo (contracts) | Infraestructura cloud |
 
 ### Diagrama de capas
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                        Cliente (Browser)                         │
-│  ┌──────────┐  ┌──────────┐  ┌────────────┐  ┌───────────────┐  │
-│  │ Next.js  │  │ Tailwind │  │   Zustand  │  │ TanStack      │  │
-│  │ (React)  │  │   CSS    │  │  (Estado)  │  │ Query (Cache) │  │
-│  └────┬─────┘  └──────────┘  └────────────┘  └───────┬───────┘  │
-│       │         WalletConnect (window.ethereum)         │          │
-│       │          (Rabby / MetaMask → CELO)             │          │
-└──────────────────────┬───────────────────────────────────────────┘
-                       │
-           ┌───────────┼───────────────┐
-           ▼           ▼               ▼
-┌─────────────────┐  ┌────────────┐  ┌──────────────────────────┐
-│ Next.js API     │  │ NextAuth   │  │  CELO Blockchain         │
-│ Routes (REST)   │  │ (JWT)      │  │  ┌──────────────────┐   │
-│ /api/auth/*     │  │            │  │  │OrientaProf       │   │
-│ /api/users/*    │  │            │  │  │Payments.sol      │   │
-│ /api/requests/* │  │            │  │  │(Escrow cUSD)     │   │
-│ /api/messages/* │  │            │  │  └──────────────────┘   │
-│ /api/payments/* │  │            │  │  ┌──────────────────┐   │
-│ /api/...        │  │            │  │  │OrientaProf       │   │
-│                 │  │            │  │  │Reputation.sol    │   │
-└────────┬────────┘  └────────────┘  │  │(Calificaciones)  │   │
-         │                           │  └──────────────────┘   │
-         ▼                           └──────────────────────────┘
-┌────────────────┐
-│    Prisma      │
-│    (ORM)       │
-└────────┬───────┘
-         ▼
-┌────────────────┐
-│  PostgreSQL    │
-│  (Datos app)   │
-└────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                     Cliente (Browser)                        │
+│  ┌──────────┐  ┌──────────┐  ┌─────────────────────────┐   │
+│  │ Next.js  │  │ Tailwind │  │ WalletConnect            │   │
+│  │ (React)  │  │   CSS    │  │ (window.ethereum)        │   │
+│  └────┬─────┘  └──────────┘  │ (Rabby / MetaMask → CELO)│   │
+│       │                      └──────────────────────────┘   │
+└──────────────────┬──────────────────────────────────────────┘
+                   │
+        ┌──────────┼──────────────┐
+        ▼          ▼              ▼
+┌────────────┐  ┌────────────┐  ┌──────────────────────────┐
+│ Next.js    │  │ NextAuth   │  │  CELO Blockchain          │
+│ API Routes │  │ (JWT)      │  │  ┌──────────────────┐    │
+│ (REST)     │  │            │  │  │OrientaProf       │    │
+│ /api/auth  │  │            │  │  │Payments.sol      │    │
+│ /api/users │  │            │  │  │(Escrow CELO nativo)    │
+│ /api/...   │  │            │  │  └──────────────────┘    │
+└───────┬────┘  └────────────┘  └──────────────────────────┘
+        ▼
+┌────────────┐
+│   Prisma   │
+│   (ORM)    │
+└───────┬────┘
+        ▼
+┌────────────┐
+│ PostgreSQL │
+│ (Supabase) │
+└────────────┘
 
-         ┌────────────────┐
-         │  Jitsi Meet    │
-         │  (Videollamada)│
-         └────────────────┘
+       ┌──────────────┐
+       │  Jitsi Meet  │
+       │ (Videollamada)│
+       └──────────────┘
 ```
 
 ### Estructura de directorios real (MVP)
@@ -266,60 +259,58 @@ El schema Prisma actual contiene los siguientes modelos y enums (ver `prisma/sch
 
 ---
 
-## 5. Diseño de Smart Contracts (Solididad — CELO)
+## 5. Diseño de Smart Contracts (Solidity — CELO)
 
 ### OrientaProfPayments.sol — Contrato principal de pagos
 
-Propósito: Escrow en cUSD para videollamadas. Retiene fondos del cliente y los libera al profesional al completarse la llamada.
+Propósito: Escrow en CELO nativo para videollamadas. Retiene fondos del cliente y los libera al profesional al completarse la llamada. Usa CELO nativo (`msg.value`) para evitar manejo de ERC20 y aprobaciones.
+
+Contrato desplegado en **Celo Sepolia**: `0x25eC8EC72aBDB67b9C24E5838B0063AeB264a54b`
 
 ```solidity
-// Diseño conceptual del contrato
+// Contrato real implementado en blockchain/
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
 
-contract OrientaProfPayments {
-    // Tokens aceptados (cUSD en Celo)
-    IERC20 public cUSD;
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-    // Comisión de plataforma (5% = 50 basis points)
-    uint256 public platformFee = 50; // en basis points (0.01%)
-    address public platformWallet;
+contract OrientaProfPayments is Ownable {
+    uint256 public constant COMMISSION_BPS = 500; // 5%
+    uint256 public transactionCounter;
 
-    // Estructura de una consulta/escrow
-    struct Consultation {
+    enum TxStatus { PENDIENTE, LIBERADA, REEMBOLSADA }
+
+    struct Transaction {
         address client;
         address professional;
-        uint256 amount;           // Total depositado en cUSD
-        uint256 ratePerMinute;    // Tarifa por minuto
-        uint256 durationMinutes;  // Duración acordada
-        uint256 startTime;        // Timestamp de inicio
-        uint256 endTime;          // Timestamp de finalización
-        ConsultationStatus status;
+        uint256 amount;
+        uint256 commission;
+        TxStatus status;
     }
 
-    enum ConsultationStatus { CREATED, IN_PROGRESS, COMPLETED, CANCELLED }
+    mapping(uint256 => Transaction) public transactions;
 
-    mapping(uint256 => Consultation) public consultations;
-    uint256 public consultationCounter;
+    event Deposited(uint256 indexed txId, address indexed client, uint256 amount);
+    event Released(uint256 indexed txId, address indexed professional, uint256 amount);
+    event Refunded(uint256 indexed txId, address indexed client, uint256 amount);
 
-    // Eventos
-    event ConsultationCreated(uint256 indexed id, address indexed client, address indexed professional, uint256 amount);
-    event ConsultationStarted(uint256 indexed id);
-    event ConsultationCompleted(uint256 indexed id, uint256 amountReleased);
-    event ConsultationCancelled(uint256 indexed id, uint256 amountRefunded);
+    function deposit(
+        address _professional
+    ) external payable returns (uint256 txId);
 
-    // Funciones principales
-    function createConsultation(
-        address _professional,
-        uint256 _ratePerMinute,
-        uint256 _durationMinutes
-    ) external returns (uint256 consultationId);
+    function release(
+        uint256 _txId
+    ) external;
 
-    function startConsultation(uint256 _consultationId) external;
+    function refund(
+        uint256 _txId
+    ) external;
 
-    function completeConsultation(uint256 _consultationId) external;
+    function withdraw() external onlyOwner;
 
-    function cancelConsultation(uint256 _consultationId) external;
-
-    function withdrawFunds() external; // Solo plataforma
+    function getTransaction(
+        uint256 _txId
+    ) external view returns (Transaction memory);
 }
 ```
 
@@ -327,33 +318,34 @@ contract OrientaProfPayments {
 
 ```
 1. DEPOSIT: Cliente envía CELO nativo via msg.value al contrato
-   - amount = ratePerMinute × durationMinutes
-   - Fondos quedan retenidos en escrow (PENDIENTE)
+   - Se crea Transaction con status PENDIENTE
+   - Se descuenta 5% de comisión (COMMISSION_BPS = 500)
+   - Fondos retenidos en escrow
 
 2. JOIN: Ambos participantes ingresan a la videollamada
    - Cada uno llama POST /api/appointments/[id]/join
-   - Cuando ambos confirman → status COMPLETED
+   - Solo marca confirmed (NO cambia status de escrow)
 
-3. RELEASE: Profesional llama release(txIndex) via backend API
+3. COMPLETE: Profesional finaliza la llamada manualmente
+   - Llama POST /api/appointments/[id]/complete
+   - Appointment cambia a COMPLETED
+
+4. RELEASE: Profesional llama release(txIndex) via backend API
    - EscrowTransaction cambia a LIBERADA
    - Fondos disponibles para retiro del profesional (withdraw)
 
-4. REFUND: Cliente llama refund(txIndex) via backend API
-   - Se descuenta 5% (gasFeeBps = 500)
+5. REFUND: Cliente llama refund(txIndex) via backend API
+   - Se descuenta 5% (commission)
    - Resto devuelto al cliente
    - EscrowTransaction cambia a REEMBOLSADA
 ```
-
-### OrientaProfReputation.sol — (deferido fuera del MVP)
-
-El contrato de reputación on-chain queda fuera del MVP. Las calificaciones se manejan solo en base de datos si se implementan.
 
 ### Integración con el backend
 
 El backend se comunica con el contrato mediante:
 - **WalletConnect (window.ethereum)** (frontend → firma de depósito del cliente)
 - **ethers v6** (backend → llamadas release/refund via JsonRpcProvider + Wallet signer)
-- **API Routes** (`/api/payments/deposit`, `/api/payments/release`, `/api/payments/refund`) sincronizan el estado off-chain con el contrato
+- **API Routes** (`/api/payments/deposit`, `/api/payments/release`, `/api/payments/refund`, `/api/payments/transactions`) sincronizan el estado off-chain con el contrato
 
 ---
 

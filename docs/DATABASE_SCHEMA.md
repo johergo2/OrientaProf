@@ -304,15 +304,19 @@ model Appointment {
 SCHEDULED
   │
   ├── (cliente llama /join) → clientConfirmed = true
-  │                              │
-  │                              └── (profesional llama /join) → ambos true → COMPLETED
   │
   ├── (profesional llama /join) → professionalConfirmed = true
-  │                                │
-  │                                └── (cliente llama /join) → ambos true → COMPLETED
   │
-  └── (POST /cancel) → CANCELLED
+  ├── (POST /complete) → COMPLETED + completedAt
+  │
+  ├── (POST /reschedule) → cambia scheduledAt/durationMinutes (misma cita)
+  │
+  └── (POST /cancel, solo si scheduledAt > now) → CANCELLED
 ```
+
+> Nota: `/join` solo marca confirmación de entrada. No cambia status.
+> `/complete` finaliza manualmente la cita (profesional tras terminar videollamada).
+> `/reschedule` modifica fecha/duración de la misma cita (no cancela ni crea nueva).
 
 ### 3.8. `AttendanceConfirmation`
 
@@ -486,7 +490,9 @@ CANCELAR CITA:
 | Solo el cliente puede crear/cancelar consultas | Middleware de rol + ownership |
 | Profesional solo responde consultas PENDING | Validación de estado en API |
 | Un mensaje de profesional → status = RESPONDED | Lógica en POST /api/requests/:id |
-| Ambos deben llamar /join para completar | Verificación en POST /api/appointments/:id/join |
+| Ambos deben llamar /join para confirmar entrada | Marca clientConfirmed/professionalConfirmed en Appointment |
+| Finalizar cita manualmente con /complete | POST /api/appointments/:id/complete → status = COMPLETED + completedAt |
+| Reagendar modifica misma cita (no cancel+crear) | POST /api/appointments/:id/reschedule → cambia scheduledAt/durationMinutes |
 | Cancelación solo si scheduledAt > now | Validación en POST /api/appointments/:id/cancel |
 | No se puede depositar dos veces para misma cita | Unique appointmentId en EscrowTransaction |
 | Solo el profesional puede llamar release() | Validación session.user.id === professionalId |

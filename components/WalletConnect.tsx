@@ -17,14 +17,16 @@ const ABI = [
   "function deposit(string calldata _consultationId, address _professionalWallet) external payable",
   "function getTransaction(uint256 _index) external view returns (tuple(string consultationId, address clientWallet, address professionalWallet, uint256 amount, uint8 status, uint256 createdAt, uint256 resolvedAt))",
   "function transactionCounter() external view returns (uint256)",
+  "event TransactionCreated(uint256 indexed transactionIndex, string indexed consultationId, address indexed clientWallet, address professionalWallet, uint256 amount)",
 ]
 
 type Props = {
-  appointmentId: string
+  appointmentId?: string
   consultationId: string
   professionalWallet: string
   amountInCelo: string
-  onDepositComplete?: (txHash: string) => void
+  onDepositComplete?: (txHash: string, transactionIndex?: number) => void
+  onError?: (error: string) => void
 }
 
 export default function WalletConnect({
@@ -33,6 +35,7 @@ export default function WalletConnect({
   professionalWallet,
   amountInCelo,
   onDepositComplete,
+  onError,
 }: Props) {
   const [signer, setSigner] = useState<JsonRpcSigner | null>(null)
   const [address, setAddress] = useState("")
@@ -93,21 +96,41 @@ export default function WalletConnect({
       const receipt = await tx.wait()
       setTxHash(receipt.hash)
 
-      await fetch("/api/payments/deposit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          appointmentId,
-          depositTxHash: receipt.hash,
-          clientAddress: address,
-          professionalAddress: professionalWallet,
-          amount: amountInCelo,
-        }),
-      })
+      let transactionIndex: number | undefined
+      if (receipt.logs) {
+        const contract = new Contract(CONTRACT_ADDRESS, ABI, signer)
+        for (const log of receipt.logs) {
+          try {
+            const parsed = contract.interface.parseLog({
+              topics: [...log.topics],
+              data: log.data,
+            })
+            if (parsed?.name === "TransactionCreated") {
+              transactionIndex = Number(parsed.args.transactionIndex)
+            }
+          } catch { }
+        }
+      }
 
-      onDepositComplete?.(receipt.hash)
+      if (appointmentId) {
+        await fetch("/api/payments/deposit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            appointmentId,
+            depositTxHash: receipt.hash,
+            clientAddress: address,
+            professionalAddress: professionalWallet,
+            amount: amountInCelo,
+          }),
+        })
+      }
+
+      onDepositComplete?.(receipt.hash, transactionIndex)
     } catch (e: any) {
-      setError(e.message ?? "Error al depositar")
+      const msg = e.message ?? "Error al depositar"
+      setError(msg)
+      onError?.(msg)
     } finally {
       setDepositing(false)
     }

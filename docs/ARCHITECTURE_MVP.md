@@ -219,9 +219,13 @@ El schema completo está en `prisma/schema.prisma` y documentado en `DATABASE_SC
    Ambos → /appointments/[id]/room → Jitsi Meet iframe
    → Cada uno llama POST /api/appointments/:id/join
    → clientConfirmed/professionalConfirmed = true
-   → Cuando ambos confirman → Appointment { status: COMPLETED }
+   → (NO cambia status automáticamente)
 
-7. LIBERACIÓN / REEMBOLSO
+7. FINALIZAR (Profesional)
+   → Profesional llama POST /api/appointments/:id/complete
+   → Appointment { status: COMPLETED, completedAt }
+
+8. LIBERACIÓN / REEMBOLSO
    Si videollamada completada:
    → Profesional llama POST /api/payments/release
      → Backend llama contract.release(transactionIndex)
@@ -231,7 +235,7 @@ El schema completo está en `prisma/schema.prisma` y documentado en `DATABASE_SC
    → Cliente llama POST /api/payments/refund
      → Backend llama contract.refund(transactionIndex)
      → EscrowTransaction { status: REEMBOLSADA }
-     → Cliente recibe amount - 5% (gas fee)
+     → Cliente recibe amount - 5% (commission)
 ```
 
 ---
@@ -316,6 +320,8 @@ Funciones principales:
 | GET | `/api/appointments` | Cualquiera | Listar citas |
 | GET | `/api/appointments/:id` | Cualquiera | Detalle cita |
 | POST | `/api/appointments/:id/join` | Ambos | Confirmar entrada |
+| POST | `/api/appointments/:id/complete` | Ambos | Finalizar videollamada |
+| POST | `/api/appointments/:id/reschedule` | Ambos | Reagendar cita |
 | POST | `/api/appointments/:id/cancel` | Ambos | Cancelar cita |
 | POST | `/api/payments/deposit` | CLIENT | Registrar depósito escrow |
 | POST | `/api/payments/release` | PROFESSIONAL | Liberar fondos |

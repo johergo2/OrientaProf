@@ -42,6 +42,8 @@ export async function GET(req: Request) {
           receiverId: true,
           read: true,
           createdAt: true,
+          messageType: true,
+          structuredData: true,
         },
       })
 
@@ -181,7 +183,7 @@ export async function POST(req: Request) {
       return validationErrorResponse(parsed.error.flatten().fieldErrors)
     }
 
-    const { receiverId, requestId, content } = parsed.data
+    const { receiverId, requestId, content, messageType, structuredData } = parsed.data
 
     if (receiverId === userId) {
       return validationErrorResponse({ receiverId: ["No puedes enviarte un mensaje a ti mismo"] })
@@ -208,6 +210,8 @@ export async function POST(req: Request) {
         receiverId,
         requestId: requestId ?? null,
         content,
+        messageType: (messageType as any) ?? "REGULAR",
+        structuredData: structuredData ?? undefined,
       },
       select: {
         id: true,
@@ -217,6 +221,8 @@ export async function POST(req: Request) {
         read: true,
         createdAt: true,
         requestId: true,
+        messageType: true,
+        structuredData: true,
       },
     })
 

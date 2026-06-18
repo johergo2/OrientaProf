@@ -26,31 +26,7 @@ export default function ProfessionalDashboard() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [pendingProposals, setPendingProposals] = useState(0)
   const [appointmentCount, setAppointmentCount] = useState(0)
-  const [walletAddress, setWalletAddress] = useState("")
-  const [walletSaving, setWalletSaving] = useState(false)
-  const [walletMsg, setWalletMsg] = useState("")
 
-  async function handleSaveWallet() {
-    setWalletMsg("")
-    setWalletSaving(true)
-    try {
-      const res = await fetch("/api/user/wallet", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress }),
-      })
-      const json = await res.json()
-      if (json.success) {
-        setWalletMsg("Wallet guardada")
-      } else {
-        setWalletMsg(json.error ?? "Error al guardar")
-      }
-    } catch {
-      setWalletMsg("Error de conexión")
-    } finally {
-      setWalletSaving(false)
-    }
-  }
 
   useEffect(() => {
     fetch("/api/requests")
@@ -63,15 +39,6 @@ export default function ProfessionalDashboard() {
         }
       })
       .finally(() => setLoading(false))
-
-    fetch("/api/user/profile")
-      .then((r) => r.json())
-      .then((res) => {
-        if (res.success && res.data.walletAddress) {
-          setWalletAddress(res.data.walletAddress)
-        }
-      })
-      .catch(() => {})
 
     fetch("/api/messages")
       .then((r) => r.json())
@@ -182,28 +149,6 @@ export default function ProfessionalDashboard() {
             Profesional {username}
           </h1>
         </header>
-
-        <div className="bg-white border border-line rounded-lg p-4 grid gap-3">
-          <h2 className="text-ink text-sm font-bold">Tu Wallet CELO</h2>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={walletAddress}
-              onChange={(e) => { setWalletAddress(e.target.value); setWalletMsg("") }}
-              placeholder="0x..."
-              className="flex-1 border border-line rounded-lg bg-white text-ink p-2 text-xs outline-none focus:border-brand-500"
-            />
-            <button
-              type="button"
-              onClick={handleSaveWallet}
-              disabled={walletSaving}
-              className="bg-brand-700 text-white rounded-lg px-3 py-2 text-xs font-bold cursor-pointer hover:bg-brand-900 transition-colors disabled:opacity-50 whitespace-nowrap"
-            >
-              {walletSaving ? "Guardando..." : "Guardar"}
-            </button>
-          </div>
-          {walletMsg && <p className="text-[11px] text-brand-700">{walletMsg}</p>}
-        </div>
 
         <div className="bg-white border border-line rounded-lg p-4 grid gap-4">
           <h2 className="text-ink text-base font-bold">Consultas Disponibles</h2>

@@ -15,15 +15,13 @@ enum Role {
 enum RequestStatus {
   PENDING
   RESPONDED
+  NEGOTIATING
   CANCELLED
   COMPLETED
 }
 
 enum AppointmentStatus {
   SCHEDULED
-  CONFIRMED_CLIENT
-  CONFIRMED_BOTH
-  IN_PROGRESS
   COMPLETED
   CANCELLED
 }
@@ -32,6 +30,13 @@ enum EscrowStatus {
   PENDIENTE
   LIBERADA
   REEMBOLSADA
+}
+
+enum MessageType {
+  REGULAR
+  PROPOSAL
+  COUNTER_PROPOSAL
+  ACCEPTANCE
 }
 
 model User {
@@ -141,20 +146,23 @@ model Request {
 }
 
 model Message {
-  id          String   @id @default(cuid())
-  requestId   String?
-  request     Request? @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  senderId    String
-  sender      User     @relation("Sender", fields: [senderId], references: [id])
-  receiverId  String
-  receiver    User     @relation("Receiver", fields: [receiverId], references: [id])
-  content     String
-  read        Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  id            String      @id @default(cuid())
+  requestId     String?
+  request       Request?    @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  senderId      String
+  sender        User        @relation("Sender", fields: [senderId], references: [id])
+  receiverId    String
+  receiver      User        @relation("Receiver", fields: [receiverId], references: [id])
+  content       String
+  messageType   MessageType @default(REGULAR)
+  structuredData Json?
+  read          Boolean     @default(false)
+  createdAt     DateTime    @default(now())
 
   @@index([senderId])
   @@index([receiverId])
   @@index([requestId])
+  @@index([messageType])
 }
 
 model Appointment {

@@ -132,7 +132,7 @@ contract OrientaProfPayments {
 
 **Descripción**: El usuario deposita CELO en el contrato para una consulta. Los fondos quedan bloqueados en estado PENDIENTE.
 
-**Quién llama**: Usuario (cliente) desde su wallet vía frontend (RainbowKit + Wagmi).
+**Quién llama**: Usuario (cliente) desde su wallet vía WalletConnect (window.ethereum, Rabby/MetaMask).
 
 **Parámetros**:
 - `_consultationId`: Identificador único de la consulta
@@ -437,7 +437,7 @@ Las tarifas se expresan en **basis points (bps)**:
 
 ```
 Frontend (cliente):
-  → Conecta wallet (RainbowKit + Wagmi)
+  → Conecta wallet (WalletConnect via window.ethereum, Rabby/MetaMask)
   → Calcula monto (tarifaPorMinuto × duracionMinutos)
   → Llama contract.deposit(consultationId, professionalWallet)
     con el valor en CELO

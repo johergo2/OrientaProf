@@ -47,6 +47,31 @@ export async function callRefund(transactionIndex: number) {
   return receipt.hash
 }
 
+export async function callDeposit(consultationId: string, professionalWallet: string, amountInCelo: string) {
+  const contract = getContractSigner()
+  const tx = await contract.deposit(consultationId, professionalWallet, {
+    value: ethers.parseEther(amountInCelo),
+  })
+  const receipt = await tx.wait()
+
+  let transactionIndex: number | undefined
+  if (receipt.logs) {
+    try {
+      const iface = new ethers.Interface(ABI)
+      for (const log of receipt.logs) {
+        try {
+          const parsed = iface.parseLog({ topics: [...log.topics], data: log.data })
+          if (parsed?.name === "TransactionCreated") {
+            transactionIndex = Number(parsed.args.transactionIndex)
+          }
+        } catch { }
+      }
+    } catch { }
+  }
+
+  return { txHash: receipt.hash, transactionIndex }
+}
+
 export async function getTransaction(index: number) {
   const contract = getContractProvider()
   const txn = await contract.getTransaction(index)
