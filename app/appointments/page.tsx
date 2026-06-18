@@ -162,7 +162,6 @@ export default function AppointmentsPage() {
         return
       }
       alert("Reembolso procesado exitosamente")
-      setPaymentTarget(null)
     } catch {
       setPaymentError("Error de conexión")
     } finally {
