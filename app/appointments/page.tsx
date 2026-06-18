@@ -480,16 +480,6 @@ export default function AppointmentsPage() {
                         {processingPayment ? "Procesando..." : "Solicitar pago"}
                       </button>
                     )}
-
-                    {isClient && isAppActive(a) && !a.paymentProcessed && (
-                      <button
-                        type="button"
-                        onClick={() => setPaymentTarget(a)}
-                        className="flex-1 min-w-[100px] bg-brand-700 text-white rounded-lg py-2 text-xs font-bold cursor-pointer hover:bg-brand-900 transition-colors"
-                      >
-                        Pagar con CELO
-                      </button>
-                    )}
                   </div>
                 </div>
               )
