@@ -183,7 +183,9 @@ export default function AppointmentsPage() {
         setPaymentError(json.error ?? "Error al solicitar pago")
         return
       }
-      alert("Pago liberado exitosamente")
+      setAppointments((prev) =>
+        prev.map((a) => (a.id === appointmentId ? { ...a, status: "COMPLETED" } : a))
+      )
     } catch {
       setPaymentError("Error de conexión")
     } finally {

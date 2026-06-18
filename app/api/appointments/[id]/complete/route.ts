@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
-import { callRelease } from "@/lib/blockchain"
+import { callRefund } from "@/lib/blockchain"
 import { ethers } from "ethers"
 import { successResponse, unauthorizedResponse, serverErrorResponse, notFoundResponse, errorResponse } from "@/lib/api-response"
 
@@ -72,34 +72,29 @@ export async function POST(
       select: { transactionIndex: true, amount: true },
     })
 
+    const professional = await prisma.user.findUnique({
+      where: { id: appointment.professionalId },
+      select: { walletAddress: true },
+    })
+
     if (escrow?.transactionIndex !== undefined && escrow?.transactionIndex !== null) {
       try {
-        const releaseTxHash = await callRelease(escrow.transactionIndex)
+        const refundTxHash = await callRefund(escrow.transactionIndex)
         await prisma.escrowTransaction.update({
           where: { appointmentId: id },
-          data: { status: "LIBERADA", releaseTxHash },
+          data: { status: "REEMBOLSADA", releaseTxHash: refundTxHash },
         })
-        console.log("complete: release on-chain exitoso", { appointmentId: id, txHash: releaseTxHash })
-      } catch (err) {
-        console.error("complete: error en release on-chain", err)
-      }
-    }
+        console.log("complete: refund on-chain exitoso", { appointmentId: id, txHash: refundTxHash })
 
-    if (escrow?.amount) {
-      try {
-        const CELO_RATE = 0.00001
-        const PROFESSIONAL_FEE = 0.95
-        const celoAmount = (escrow.amount * CELO_RATE * PROFESSIONAL_FEE).toFixed(6)
-        const pk = process.env.CELO_PRIVATE_KEY
-        const rpc = process.env.CELO_RPC_URL || "https://forno.celo-sepolia.celo-testnet.org"
-        if (pk) {
-          const provider = new ethers.JsonRpcProvider(rpc)
-          const signer = new ethers.Wallet(pk, provider)
-          const professional = await prisma.user.findUnique({
-            where: { id: appointment.professionalId },
-            select: { walletAddress: true },
-          })
-          if (professional?.walletAddress) {
+        if (escrow.amount && professional?.walletAddress) {
+          const CELO_RATE = 0.00001
+          const PROFESSIONAL_FEE = 0.95
+          const celoAmount = (escrow.amount * CELO_RATE * PROFESSIONAL_FEE).toFixed(6)
+          const pk = process.env.CELO_PRIVATE_KEY
+          const rpc = process.env.CELO_RPC_URL || "https://forno.celo-sepolia.celo-testnet.org"
+          if (pk) {
+            const provider = new ethers.JsonRpcProvider(rpc)
+            const signer = new ethers.Wallet(pk, provider)
             const tx = await signer.sendTransaction({
               to: professional.walletAddress,
               value: ethers.parseEther(celoAmount),
@@ -111,7 +106,7 @@ export async function POST(
           }
         }
       } catch (err) {
-        console.error("complete: error en transferencia CELO", err)
+        console.error("complete: error en refund/transferencia", err)
       }
     }
 
