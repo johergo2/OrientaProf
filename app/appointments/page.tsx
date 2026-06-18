@@ -184,7 +184,6 @@ export default function AppointmentsPage() {
         return
       }
       alert("Pago liberado exitosamente")
-      setPaymentTarget(null)
     } catch {
       setPaymentError("Error de conexión")
     } finally {
