@@ -91,7 +91,9 @@ export async function POST(
               value: ethers.parseEther(celoAmount),
             })
             const receipt = await tx.wait()
-            console.log("complete: transferencia CELO al profesional", { to: professional.walletAddress, amount: celoAmount, txHash: receipt.hash })
+            if (receipt) {
+              console.log("complete: transferencia CELO al profesional", { to: professional.walletAddress, amount: celoAmount, txHash: receipt.hash })
+            }
           }
         }
       } catch (err) {
