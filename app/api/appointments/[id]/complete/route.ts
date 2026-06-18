@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
+import { callRelease } from "@/lib/blockchain"
 import { ethers } from "ethers"
 import { successResponse, unauthorizedResponse, serverErrorResponse, notFoundResponse, errorResponse } from "@/lib/api-response"
 
@@ -68,8 +69,21 @@ export async function POST(
 
     const escrow = await prisma.escrowTransaction.findUnique({
       where: { appointmentId: id },
-      select: { amount: true },
+      select: { transactionIndex: true, amount: true },
     })
+
+    if (escrow?.transactionIndex !== undefined && escrow?.transactionIndex !== null) {
+      try {
+        const releaseTxHash = await callRelease(escrow.transactionIndex)
+        await prisma.escrowTransaction.update({
+          where: { appointmentId: id },
+          data: { status: "LIBERADA", releaseTxHash },
+        })
+        console.log("complete: release on-chain exitoso", { appointmentId: id, txHash: releaseTxHash })
+      } catch (err) {
+        console.error("complete: error en release on-chain", err)
+      }
+    }
 
     if (escrow?.amount) {
       try {
