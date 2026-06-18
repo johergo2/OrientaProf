@@ -19,6 +19,9 @@ export async function POST(
         clientId: true,
         professionalId: true,
         status: true,
+        clientConfirmed: true,
+        professionalConfirmed: true,
+        startedAt: true,
       },
     })
 
@@ -36,6 +39,17 @@ export async function POST(
 
     if (appointment.status === "COMPLETED") {
       return errorResponse("La cita ya fue completada", 400)
+    }
+
+    if (!appointment.clientConfirmed || !appointment.professionalConfirmed) {
+      return errorResponse("Ambos deben ingresar a la videollamada antes de finalizar", 400)
+    }
+
+    if (appointment.startedAt) {
+      const secondsElapsed = (Date.now() - appointment.startedAt.getTime()) / 1000
+      if (secondsElapsed < 10) {
+        return errorResponse(`Deben permanecer al menos 10 segundos en la videollamada (llevan ${Math.floor(secondsElapsed)}s)`, 400)
+      }
     }
 
     const updated = await prisma.appointment.update({

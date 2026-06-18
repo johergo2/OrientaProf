@@ -54,14 +54,22 @@ export async function POST(
       return errorResponse("La videollamada ya finalizó.", 400)
     }
 
-    const updateFields: Record<string, unknown> = isClient
+    const updateData: Record<string, unknown> = isClient
       ? { clientConfirmed: true }
       : { professionalConfirmed: true }
 
+    const willBothConfirmed = isClient
+      ? appointment.professionalConfirmed
+      : appointment.clientConfirmed
+
+    if (willBothConfirmed) {
+      updateData.startedAt = new Date()
+    }
+
     const updated = await prisma.appointment.update({
       where: { id },
-      data: updateFields,
-      select: { clientConfirmed: true, professionalConfirmed: true, status: true },
+      data: updateData,
+      select: { clientConfirmed: true, professionalConfirmed: true, startedAt: true, status: true },
     })
 
     return successResponse(updated)

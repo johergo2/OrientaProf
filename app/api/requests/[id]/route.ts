@@ -100,6 +100,9 @@ export async function POST(
     }, 201)
   } catch (error) {
     console.error("Error responding to request:", error)
+    if (error instanceof Error) {
+      console.error("Error details:", { message: error.message, stack: error.stack?.slice(0, 500) })
+    }
     return serverErrorResponse("Error al responder la consulta")
   }
 }
