@@ -288,7 +288,7 @@ Funciones principales:
 | **Passwords** | bcrypt |
 | **API** | Validación Zod, middleware de rol y ownership |
 | **Blockchain** | OpenZeppelin Ownable, solo backend autorizado para release/refund, patrón checks-effects-interactions |
-| **Video** | Sala Jitsi pública sin autenticación (MVP) |
+| **Video** | Sala Jitsi pública (meet.jit.si — requiere login desde ago 2023) |
 | **Datos** | Prisma prepared statements, SQL injection prevenido |
 | **HTTPS** | Forzado en producción |
 

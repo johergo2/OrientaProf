@@ -91,9 +91,9 @@ Pagos descentralizados con CELO nativo mediante escrow inteligente, garantizando
 | **Backend** | Next.js API Routes | API RESTful unificada con el frontend |
 | **ORM** | Prisma | Tipado seguro de base de datos |
 | **Base de datos** | PostgreSQL | Datos relacionales del negocio |
-| **Video** | Jitsi Meet API (embebido) | Videollamadas sin infraestructura propia |
+| **Video** | Jitsi Meet vía iframe (`meet.jit.si` — requiere autenticación) | Videollamadas: `meet.jit.si` exige login desde ago 2023 |
 | **Smart Contracts** | Solidity + Hardhat | Lógica de pagos on-chain |
-| **Blockchain** | Celo (Sepolia → Mainnet) | Pagos con CELO nativo, transparencia |
+| **Blockchain** | Celo (Sepolia → Mainnet) | Pagos con CELO nativo, transparencia. Tasa MVP: 1 COP = 0.00001 CELO |
 | **Wallet** | WalletConnect via `window.ethereum` (Rabby/MetaMask) | Conexión directa sin dependencias externas |
 | **Ethers** | ethers v6 | Interacción con contratos desde backend (JsonRpcProvider + Wallet) |
 | **Testing** | Vitest + Playwright | Tests unitarios y de integración |
@@ -374,7 +374,7 @@ El backend se comunica con el contrato mediante:
   - Pagos: POST deposit, POST release, POST refund, GET transactions (4 endpoints)
 - **Dashboards** completos: cliente (/dashboard/client + my-requests), profesional (/dashboard/professional + respond/[id])
 - **Appointments** page (`/appointments`): tabs, join/cancel/reschedule, modal pago CELO, botones refund/release
-- **Jitsi Meet** room (`/appointments/[id]/room`): iframe con meet.jit.si, verificación, join automático
+- **Jitsi Meet** room (`/appointments/[id]/room`): iframe con meet.jit.si (requiere login Google/GitHub/Facebook desde ago 2023), verificación, join automático
 - **Smart contract `OrientaProfPayments`** desplegado en Celo Sepolia (`0x25eC8EC72aBDB67b9C24E5838B0063AeB264a54b`)
 - **WalletConnect** component: conexión Rabby/MetaMask, switch a Celo Sepolia, depósito al contrato
 - **Blockchain helpers** (`lib/blockchain.ts`): ethers v6, JsonRpcProvider + Wallet, callRelease/callRefund/getTransaction

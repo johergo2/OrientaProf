@@ -241,6 +241,6 @@ _Objetivo: MVP desplegado y documentado._
 - Smart contract desplegado en **Celo Sepolia** (no Alfajores, deprecado)
 - CELO nativo usado en vez de cUSD (evita aprobaciones ERC20)
 - WalletConnect via window.ethereum directo (sin RainbowKit/Wagmi)
-- Jitsi via meet.jit.si público (sin self-hosted)
+- [ ] **P2 M** Reemplazar meet.jit.si (requiere auth desde ago 2023): auto-hospedar Jitsi o usar instancia alternativa
 - `blockchain/` es CommonJS para evitar conflicto ESM con Next.js
 - Toda tarea marcada como completada debe tener su PR asociado y deploy verificado

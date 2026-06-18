@@ -806,7 +806,7 @@ El reagendamiento se maneja mediante el endpoint `POST /api/appointments/[id]/re
 
 ## 9. Videollamada (Jitsi Meet)
 
-La sala de videollamada se accede via frontend en `/appointments/[id]/room`. El nombre de sala Jitsi se deriva del ID de la cita (`OrientaProf-{appointmentId}`) y se embebe via iframe apuntando a `meet.jit.si`. El estado de la videollamada se maneja mediante `POST /api/appointments/[id]/join` (marca confirmación de entrada) y `POST /api/appointments/[id]/complete` (finaliza la cita manualmente).
+La sala de videollamada se accede via frontend en `/appointments/[id]/room`. El nombre de sala Jitsi se deriva del ID de la cita (`OrientaProf-{appointmentId}`) y se embebe via iframe apuntando a `meet.jit.si` **(requiere autenticación con Google/GitHub/Facebook desde ago 2023)**. El estado de la videollamada se maneja mediante `POST /api/appointments/[id]/join` (marca confirmación de entrada) y `POST /api/appointments/[id]/complete` (finaliza la cita manualmente).
 
 ---
 
