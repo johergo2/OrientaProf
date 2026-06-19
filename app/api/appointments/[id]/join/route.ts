@@ -12,6 +12,8 @@ export async function POST(
 
     const { id } = await params
 
+    console.log("join: userId=" + session.user.id + " appointmentId=" + id)
+
     const appointment = await prisma.appointment.findUnique({
       where: { id },
       select: {
@@ -30,7 +32,10 @@ export async function POST(
 
     const isClient = session.user.id === appointment.clientId
     const isProfessional = session.user.id === appointment.professionalId
+    console.log("join: isClient=" + isClient + " isProfessional=" + isProfessional + " clientConfirmed=" + appointment.clientConfirmed + " professionalConfirmed=" + appointment.professionalConfirmed)
+
     if (!isClient && !isProfessional) {
+      console.log("join: usuario no es participante")
       return errorResponse("No eres participante de esta cita", 403)
     }
 
@@ -66,11 +71,15 @@ export async function POST(
       updateData.startedAt = new Date()
     }
 
+    console.log("join: updating with", JSON.stringify(updateData))
+
     const updated = await prisma.appointment.update({
       where: { id },
       data: updateData,
       select: { clientConfirmed: true, professionalConfirmed: true, startedAt: true, status: true },
     })
+
+    console.log("join: update result", JSON.stringify(updated))
 
     return successResponse(updated)
   } catch (error) {

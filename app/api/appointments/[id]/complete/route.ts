@@ -14,6 +14,8 @@ export async function POST(
 
     const { id } = await params
 
+    console.log("complete: userId=" + session.user.id + " appointmentId=" + id)
+
     const appointment = await prisma.appointment.findUnique({
       where: { id },
       select: {
@@ -35,24 +37,34 @@ export async function POST(
       return errorResponse("No eres participante de esta cita", 403)
     }
 
+    console.log("complete: status=" + appointment.status + " clientConfirmed=" + appointment.clientConfirmed + " professionalConfirmed=" + appointment.professionalConfirmed + " startedAt=" + appointment.startedAt)
+
     if (appointment.status === "CANCELLED") {
+      console.log("complete: cancelada")
       return errorResponse("La cita está cancelada", 400)
     }
 
     if (appointment.status === "COMPLETED") {
+      console.log("complete: ya completada")
       return errorResponse("La cita ya fue completada", 400)
     }
 
     if (!appointment.clientConfirmed || !appointment.professionalConfirmed) {
+      console.log("complete: falta confirmacion de uno")
       return errorResponse("Ambos deben ingresar a la videollamada antes de finalizar", 400)
     }
 
     if (appointment.startedAt) {
       const secondsElapsed = (Date.now() - appointment.startedAt.getTime()) / 1000
       if (secondsElapsed < 10) {
+        console.log("complete: menos de 10s (" + secondsElapsed + ")")
         return errorResponse(`Deben permanecer al menos 10 segundos en la videollamada (llevan ${Math.floor(secondsElapsed)}s)`, 400)
       }
     }
+
+    console.log("complete: todas las validaciones pasaron")
+
+    console.log("complete: marcando COMPLETED")
 
     const updated = await prisma.appointment.update({
       where: { id },
@@ -66,6 +78,8 @@ export async function POST(
         completedAt: true,
       },
     })
+
+    console.log("complete: COMPLETED exitoso", JSON.stringify(updated))
 
     const escrow = await prisma.escrowTransaction.findUnique({
       where: { appointmentId: id },
